@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Visualización AR - Búsqueda del Mayor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <style>
+        .instructions {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 999;
+            font-family: Arial, sans-serif;
+        }
+        .controls {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 999;
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 0 5px;
+            cursor: pointer;
+        }
+        .step-info {
+            margin-top: 10px;
+            color: white;
+            font-size: 18px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body style="margin: 0; overflow: hidden;">
+    <div class="instructions">
+        <h2>Búsqueda del número mayor en un array</h2>
+        <p>1. Muestra el marcador Hiro a la cámara</p>
+        <p>2. La visualización aparecerá sobre el marcador</p>
+        <p>3. Usa los botones para navegar por el algoritmo</p>
+    </div>
+
+    <div class="controls">
+        <button onclick="previousStep()">Anterior</button>
+        <button onclick="nextStep()">Siguiente</button>
+        <button onclick="resetAlgorithm()">Reiniciar</button>
+        <span id="stepInfo" style="margin-left: 15px;">Paso: 1/5</span>
+    </div>
+
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
+        <a-marker preset="hiro">
+            <a-entity id="arrayVisualization" position="0 0 0" scale="0.5 0.5 0.5">
+                <!-- Array de números con índices -->
+                <a-box id="box0" position="-2 0.5 0" depth="0.5" height="0.5" width="0.5" color="#4CC3D9">
+                    <a-text value="23" position="0 0 0.3" scale="0.5 0.5 0.5" align="center"></a-text>
+                    <a-text value="[0]" position="0 -0.4 0.3" scale="0.3 0.3 0.3" align="center"></a-text>
+                </a-box>
+                <a-box id="box1" position="-1 0.5 0" depth="0.5" height="0.5" width="0.5" color="#4CC3D9">
+                    <a-text value="45" position="0 0 0.3" scale="0.5 0.5 0.5" align="center"></a-text>
+                    <a-text value="[1]" position="0 -0.4 0.3" scale="0.3 0.3 0.3" align="center"></a-text>
+                </a-box>
+                <a-box id="box2" position="0 0.5 0" depth="0.5" height="0.5" width="0.5" color="#4CC3D9">
+                    <a-text value="12" position="0 0 0.3" scale="0.5 0.5 0.5" align="center"></a-text>
+                    <a-text value="[2]" position="0 -0.4 0.3" scale="0.3 0.3 0.3" align="center"></a-text>
+                </a-box>
+                <a-box id="box3" position="1 0.5 0" depth="0.5" height="0.5" width="0.5" color="#4CC3D9">
+                    <a-text value="67" position="0 0 0.3" scale="0.5 0.5 0.5" align="center"></a-text>
+                    <a-text value="[3]" position="0 -0.4 0.3" scale="0.3 0.3 0.3" align="center"></a-text>
+                </a-box>
+                <a-box id="box4" position="2 0.5 0" depth="0.5" height="0.5" width="0.5" color="#4CC3D9">
+                    <a-text value="34" position="0 0 0.3" scale="0.5 0.5 0.5" align="center"></a-text>
+                    <a-text value="[4]" position="0 -0.4 0.3" scale="0.3 0.3 0.3" align="center"></a-text>
+                </a-box>
+
+                <!-- Puntero del recorrido -->
+                <a-cone id="pointer" position="-2 1.5 0" radius-bottom="0.1" radius-top="0" height="0.3" color="red">
+                    <a-animation attribute="position" dur="1000" direction="alternate" repeat="indefinite" to="-2 1.7 0"></a-animation>
+                </a-cone>
+
+                <!-- Indicador del mayor -->
+                <a-box id="maxIndicator" position="-2 -0.5 0" depth="0.5" height="0.5" width="0.5" color="green">
+                    <a-text id="maxText" value="Mayor: 23" position="0 0 0.3" scale="0.5 0.5 0.5" align="center"></a-text>
+                </a-box>
+
+                <!-- Panel de código -->
+                <a-entity id="codePanel" position="0 2.5 0">
+                    <a-plane width="6" height="2.5" color="#333333">
+                        <a-text id="codeText" 
+                               value="Inicio\n\n1. Asignar el primer valor del arreglo a la variable 'mayor' \n   mayor = arreglo[0]\n\n2. Para cada elemento en el arreglo (desde el índice 1 hasta el final): \n   a. Compara el valor actual (arreglo[i]) con 'mayor' \n   b. Si arreglo[i] > mayor entonces: \n      i. Asignar el valor de arreglo[i] a 'mayor' \n   c. Si no, continuar al siguiente paso.\n\n3. El algoritmo ha terminado. El valor en 'mayor' es el número más grande del arreglo." 
+                               position="-2.8 0.9 0.01" 
+                               scale="0.4 0.4 0.4" 
+                               color="white" 
+                               align="left"></a-text>
+                        <a-text id="currentLine" 
+                               value=">" 
+                               position="-3 0.9 0.01" 
+                               scale="0.4 0.4 0.4" 
+                               color="yellow"></a-text>
+                    </a-plane>
+                </a-entity>
+
+                <!-- Indicador de la posición actual -->
+                <a-entity id="indexIndicator" position="0 -1.5 0">
+                    <a-plane width="4" height="0.5" color="#333333">
+                        <a-text id="indexText" 
+                               value="i = 0" 
+                               position="0 0 0.01" 
+                               scale="0.8 0.8 0.8" 
+                               color="white" 
+                               align="center"></a-text>
+                    </a-plane>
+                </a-entity>
+            </a-entity>
+        </a-marker>
+
+        <a-entity camera></a-entity>
+    </a-scene>
+
+    <script>
+        // Esperar a que A-Frame esté listo
+        window.addEventListener('DOMContentLoaded', function() {
+            const array = [23, 45, 12, 67, 34];
+            let currentStep = 0;
+            let currentMax = array[0];
+
+            const pointer = document.querySelector('#pointer');
+            const maxIndicator = document.querySelector('#maxIndicator');
+            const maxText = document.querySelector('#maxText');
+            const stepInfo = document.getElementById('stepInfo');
+            const indexText = document.querySelector('#indexText');
+            const currentLine = document.querySelector('#currentLine');
+            const explanationText = document.querySelector('#codeText');
+            const codeLines = [0.9, 0.7, 0.5, 0.3, 0.1, -0.1]; // Posiciones Y para cada línea de código
+
+            // Explicaciones para cada paso
+            const explanations = [
+                "Inicio: Definimos el primer valor como el mayor",
+                "Paso 1: Comenzamos el ciclo para comparar cada valor",
+                "Paso 2: Si el valor es mayor que el actual, lo asignamos como el nuevo mayor",
+                "Paso 3: Continuamos el ciclo hasta revisar todos los elementos",
+                "Fin: El mayor valor es el resultado final"
+            ];
+
+            function updateVisualization() {
+                // Actualizar posición del puntero
+                pointer.setAttribute('position', `${currentStep * 1 - 2} 1.5 0`);
+                
+                // Actualizar el índice actual
+                indexText.setAttribute('value', `i = ${currentStep}`);
+                
+                // Actualizar el máximo si es necesario
+                let tempMax = array[0];
+                let maxPos = 0;
+                for (let i = 1; i <= currentStep; i++) {
+                    if (array[i] > tempMax) {
+                        tempMax = array[i];
+                        maxPos = i;
+                    }
+                }
+                currentMax = tempMax;
+                maxIndicator.setAttribute('position', `${maxPos - 2} -0.5 0`);
+                maxText.setAttribute('value', `Mayor: ${currentMax}`);
+                
+                // Mover el indicador de línea de código
+                if (currentStep === 0) {
+                    currentLine.setAttribute('position', `-3 ${codeLines[1]} 0.01`);
+                } else if (array[currentStep] > currentMax) {
+                    currentLine.setAttribute('position', `-3 ${codeLines[4]} 0.01`);
+                } else {
+                    currentLine.setAttribute('position', `-3 ${codeLines[2]} 0.01`);
+                }
+
+                // Actualizar información del paso
+                stepInfo.textContent = `Paso: ${currentStep + 1}/5`;
+
+                // Actualizar explicación del paso
+                explanationText.setAttribute('value', explanations[Math.min(currentStep, explanations.length-1)]);
+            }
+
+            window.nextStep = function() {
+                if (currentStep < array.length - 1) {
+                    currentStep++;
+                    updateVisualization();
+                }
+            }
+
+            window.previousStep = function() {
+                if (currentStep > 0) {
+                    currentStep--;
+                    updateVisualization();
+                }
+            }
+
+            window.resetAlgorithm = function() {
+                currentStep = 0;
+                currentMax = array[0];
+                maxIndicator.setAttribute('position', `-2 -0.5 0`);
+                updateVisualization();
+            }
+
+            // Inicializar visualización
+            updateVisualization();
+        });
+    </script>
+</body>
+</html>
