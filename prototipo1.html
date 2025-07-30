@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Visualización Dinámica de Arreglo AR</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        input, button {
+            margin: 5px;
+            padding: 8px 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #2ecc71;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #27ae60;
+        }
+
+        .pseudocodigo {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            width: 320px;
+            z-index: 1000;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .pseudocodigo h3 {
+            margin-top: 0;
+        }
+
+        .pseudocodigo pre {
+            white-space: pre-wrap;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <a-scene embedded arjs="sourceType: webcam;">
+        <a-entity camera></a-entity>
+
+        <a-marker preset="hiro">
+            <a-entity id="arrayContainer" position="0 0 0">
+                <a-entity id="array"></a-entity>
+            </a-entity>
+        </a-marker>
+    </a-scene>
+
+    <div class="controls">
+        <input type="number" id="arraySize" min="1" max="10" placeholder="Tamaño del arreglo (1-10)" />
+        <button onclick="crearArreglo()">Crear Arreglo</button>
+    </div>
+
+    <div class="pseudocodigo">
+        <h3>Pseudocódigo:</h3>
+        <pre id="pseudocodeDisplay">Esperando entrada...</pre>
+    </div>
+
+    <script>
+        function crearArreglo() {
+            const tamanoArreglo = parseInt(document.getElementById('arraySize').value);
+
+            if (isNaN(tamanoArreglo) || tamanoArreglo < 1 || tamanoArreglo > 10) {
+                alert('Por favor ingrese un número entre 1 y 10');
+                return;
+            }
+
+            const arrayEntity = document.getElementById('array');
+            arrayEntity.innerHTML = '';
+
+            const colores = [
+                '#4CC3D9', '#FFC65D', '#F16745',
+                '#7BC225', '#93648D', '#AAAFB4',
+                '#3FB8AF', '#FF6B6B', '#4ECDC4',
+                '#556270'
+            ];
+
+            let pasosPseudo = `Inicio\nLeer tamaño del arreglo: ${tamanoArreglo}\nSe crearán ${tamanoArreglo} posiciones:\nComenzando en la posicion i = 0 hasta ${tamanoArreglo - 1} que sera la ultima posicion:\n`;
+
+            for (let i = 0; i < tamanoArreglo; i++) {
+                const box = document.createElement('a-box');
+                box.setAttribute('position', `${i * 1.2} 0 0`);
+                box.setAttribute('width', '0.9');
+                box.setAttribute('height', '0.9');
+                box.setAttribute('depth', '0.9');
+                box.setAttribute('color', colores[i % colores.length]);
+
+                const posNum = document.createElement('a-text');
+                posNum.setAttribute('value', i.toString());
+                posNum.setAttribute('position', `0 -0.6 0`);
+                posNum.setAttribute('align', 'center');
+                posNum.setAttribute('color', '#000');
+
+                box.appendChild(posNum);
+                arrayEntity.appendChild(box);
+
+                pasosPseudo += `   Crear cubo en posición ${i}\n`;
+            }
+
+            pasosPseudo += `Fin`;
+
+            document.getElementById('pseudocodeDisplay').textContent = pasosPseudo;
+        }
+    </script>
+</body>
+</html>
