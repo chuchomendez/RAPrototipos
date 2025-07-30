@@ -1,1 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interacción con Bloques AR</title>
+  <!-- Versión compatible de A-Frame -->
+  https://aframe.io/releases/1.2.0/aframe.min.js
+  <!-- Versión compatible de AR.js -->
+  https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.min.js
+  https://cdn.jsdelivr.net/npm/aframe-super-hands-component@4.0.5/dist/aframe-super-hands.min.js
+  https://cdn.jsdelivr.net/npm/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js
+  <style>
+    body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 15px 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    button {
+      margin: 5px;
+      padding: 8px 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      background-color: #3498db;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover { background-color: #2980b9; }
+    .pseudocodigo {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 15px;
+      border-radius: 10px;
+      width: 320px;
+      z-index: 1000;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <a-scene embedded arjs="sourceType: webcam;" physics="gravity: -9.8">
+    <a-entity camera></a-entity>
+
+    <a-marker preset="hiro">
+      <a-entity id="arrayContainer" position="0 0 0">
+        <a-entity id="array"></a-entity>
+      </a-entity>
+
+      <!-- Mano para interacción -->
+      <a-entity id="hand" super-hands="colliderEvent: raycaster-intersection; grabStartButtons: triggerdown; grabEndButtons: triggerup"
+                laser-controls="hand: right" raycaster="objects: .interactable"></a-entity>
+    </a-marker>
+  </a-scene>
+
+  <div class="controls">
+    <button onclick="contarBloques()">Contar Bloques en Columna</button>
+  </div>
+
+  <div class="pseudocodigo">
+    <h3>Pseudocódigo:</h3>
+    <pre id="pseudocodeDisplay">Esperando interacción...</pre>
+  </div>
+
+  <script>
+    const arrayEntity = document.getElementById('array');
+    const colores = ['#4CC3D9', '#FFC65D', '#F16745', '#7BC225', '#93648D', '#AAAFB4', '#3FB8AF', '#FF6B6B', '#4ECDC4', '#556270'];
+
+    // Crear 10 bloques al iniciar
+    for (let i = 0; i < 10; i++) {
+      const box = document.createElement('a-box');
+      box.setAttribute('position', `${i * 1.2} 0 0`);
+      box.setAttribute('width', '0.9');
+      box.setAttribute('height', '0.9');
+      box.setAttribute('depth', '0.9');
+      box.setAttribute('color', colores[i % colores.length]);
+      box.setAttribute('class', 'interactable');
+      box.setAttribute('dynamic-body', '');
+      box.setAttribute('grabbable', '');
+      box.setAttribute('rotatable', '');
+
+      const label = document.createElement('a-text');
+      label.setAttribute('value', i.toString());
+      label.setAttribute('position', `0 -0.6 0`);
+      label.setAttribute('align', 'center');
+      label.setAttribute('color', '#000');
+
+      box.appendChild(label);
+      arrayEntity.appendChild(box);
+    }
+
+    function contarBloques() {
+      const bloques = document.querySelectorAll('#array a-box');
+      let arregloColumna = [];
+
+      bloques.forEach(b => {
+        const pos = b.getAttribute('position');
+        if (Math.abs(pos.x) < 0.5) {
+          arregloColumna.push(parseFloat(pos.y.toFixed(2)));
+        }
+      });
+
+      const mensaje = `Se detectaron ${arregloColumna.length} bloques en la columna.\n` +
+                      `Arreglo simulado: [${arregloColumna.join(', ')}]`;
+
+      document.getElementById('pseudocodeDisplay').textContent = mensaje;
+    }
+  </script>
+</body>
+</html>
 
