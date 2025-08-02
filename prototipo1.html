@@ -1,233 +1,138 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>Visualización Dinámica de Arreglo AR</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <style>
-        html, body {
-            height: 100%;
-            min-height: 100vh;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            font-family: Arial, sans-serif;
-            background: #000;
-        }
-
-        a-scene {
-            width: 100vw !important;
-            height: 100vh !important;
-            min-width: 100vw;
-            min-height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-
-        .controls, .pseudocodigo, .toggle-controls-btn {
-            position: fixed;
-            z-index: 10;
-        }
-
-        .controls {
-            bottom: 18px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.94);
-            padding: 10px 16px;
-            border-radius: 10px;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.22);
-            width: 92vw;
-            max-width: 400px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .controls input, .controls button {
-            width: 100%;
-            box-sizing: border-box;
-            font-size: 18px;
-        }
-
-        .controls input {
-            padding: 10px 8px;
-        }
-
-        .controls button {
-            padding: 12px 0;
-            background-color: #2ecc71;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            border: none;
-            border-radius: 5px;
-            transition: background-color 0.3s;
-        }
-        .controls button:active {
-            background-color: #27ae60;
-        }
-
-        .pseudocodigo {
-            top: 14px;
-            right: 14px;
-            background: rgba(255,255,255,0.91);
-            padding: 13px;
-            border-radius: 10px;
-            width: 86vw;
-            max-width: 340px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
-            font-size: 15px;
-            line-height: 1.3;
-        }
-        .pseudocodigo h3 {
-            margin-top: 0;
-        }
-        .pseudocodigo pre {
-            white-space: pre-wrap;
-            margin: 0;
-        }
-
-        .toggle-controls-btn {
-            top: 12px;
-            left: 12px;
-            background: rgba(0,0,0,0.55);
-            color: #fff;
-            border: none;
-            border-radius: 50%;
-            width: 44px;
-            height: 44px;
-            font-size: 25px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 20;
-        }
-/*
-        @media (max-width: 600px) {
-            .controls {
-                padding: 7px 2px;
-                width: 98vw;
-                max-width: none;
-                gap: 6px;
-                font-size: 15px;
-            }
-            .controls input, .controls button {
-                font-size: 15px;
-            }
-            .pseudocodigo {
-                top: 6px;
-                right: 4px;
-                padding: 7px;
-                width: 98vw;
-                max-width: none;
-                font-size: 13px;
-            }
-            .toggle-controls-btn {
-                width: 40px;
-                height: 40px;
-                font-size: 22px;
-                top: 5px;
-                left: 5px;
-            }
-        }*/
-    </style>
+  <meta charset="UTF-8" />
+  <title>Arreglo Dinámico AR</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-gesture-detector-component@4.0.3/dist/aframe-gesture-detector-component.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-super-hands-component@5.0.1/dist/aframe-super-hands.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    input, button {
+      margin: 5px;
+      padding: 8px;
+      font-size: 16px;
+    }
+    #pseudocodigo {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(255,255,255,0.94);
+      padding: 15px;
+      border-radius: 10px;
+      font-family: monospace;
+      font-size: 14px;
+      width: 320px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.25);
+      z-index: 1000;
+    }
+    #pseudocodigo pre {
+      margin: 0;
+      white-space: pre-wrap;
+    }
+  </style>
 </head>
 <body>
-    <a-scene embedded arjs="sourceType: webcam;">
-        <a-entity camera></a-entity>
-        <a-marker preset="hiro">
-            <a-entity id="arrayContainer" position="0 0 0">
-                <a-entity id="array"></a-entity>
-            </a-entity>
-        </a-marker>
-    </a-scene>
 
-    <button class="toggle-controls-btn" id="toggleBtn" title="Mostrar/ocultar controles">☰</button>
+  <a-scene embedded arjs="sourceType: webcam;" vr-mode-ui="enabled: false">
+    <a-entity camera></a-entity>
 
-    <div class="controls" id="controlsPanel">
-        <input type="number" id="arraySize" min="1" max="10" placeholder="Tamaño del arreglo (1-10)" inputmode="numeric" pattern="[0-9]*" />
-        <button onclick="crearArreglo()">Crear Arreglo</button>
-    </div>
+    <a-marker preset="hiro">
+      <a-entity id="arrayContainer" position="0 0 0">
+        <a-entity id="array"></a-entity>
+      </a-entity>
+    </a-marker>
 
-    <div class="pseudocodigo" id="pseudoPanel">
-        <h3>Pseudocódigo:</h3>
-        <pre id="pseudocodeDisplay">Esperando entrada...</pre>
-    </div>
+    <!-- 👐 Detector de manos y gestos -->
+    <a-entity id="hands" super-hands gesture-detector></a-entity>
+  </a-scene>
 
-    <script>
-        function crearArreglo() {
-            const tamanoArreglo = parseInt(document.getElementById('arraySize').value);
+  <!-- 🎛️ Panel de control -->
+  <div class="controls">
+    <input type="number" id="arraySize" min="1" max="10" placeholder="Tamaño del arreglo (1-10)">
+    <button onclick="crearArreglo()">Crear Arreglo</button>
+  </div>
 
-            if (isNaN(tamanoArreglo) || tamanoArreglo < 1 || tamanoArreglo > 10) {
-                alert('Por favor ingrese un número entre 1 y 10');
-                return;
-            }
+  <!-- 🧾 Panel de pseudocódigo -->
+  <div id="pseudocodigo">
+    <strong>📘 Pseudocódigo:</strong>
+    <pre id="codigoTexto">
+crearArreglo()
+    // esperando entrada del usuario...
+    </pre>
+  </div>
 
-            const arrayEntity = document.getElementById('array');
-            arrayEntity.innerHTML = '';
+  <script>
+    function crearArreglo() {
+      const tamanoArreglo = parseInt(document.getElementById('arraySize').value);
+      const arrayEntity = document.getElementById('array');
+      const codigoTexto = document.getElementById('codigoTexto');
 
-            const colores = [
-                '#4CC3D9', '#FFC65D', '#F16745',
-                '#7BC225', '#93648D', '#AAAFB4',
-                '#3FB8AF', '#FF6B6B', '#4ECDC4',
-                '#556270'
-            ];
+      if (isNaN(tamanoArreglo) || tamanoArreglo < 1 || tamanoArreglo > 10) {
+        alert('Por favor ingrese un número entre 1 y 10');
+        codigoTexto.textContent = `crearArreglo()\n    // tamaño inválido o fuera de rango`;
+        return;
+      }
 
-            let pasosPseudo = `Inicio\nLeer tamaño del arreglo: ${tamanoArreglo}\nSe crearán ${tamanoArreglo} posiciones:\nComenzando en la posicion i = 0 hasta ${tamanoArreglo - 1} que será la última\n`;
+      arrayEntity.innerHTML = ''; // Limpiar arreglo anterior
 
-            for (let i = 0; i < tamanoArreglo; i++) {
-                const box = document.createElement('a-box');
-                box.setAttribute('position', `${i * 1.2} 0 0`);
-                box.setAttribute('width', '0.9');
-                box.setAttribute('height', '0.9');
-                box.setAttribute('depth', '0.9');
-                box.setAttribute('color', colores[i % colores.length]);
+      let pseudo = `Paso 1. crearArreglo()\n`;
+      pseudo += `Paso 2. Solicitar el tamaño del arreglo\n`;
+      pseudo += `Paso 3. leer tamaño → ${tamanoArreglo}\n`;
+      pseudo += `Paso 4. Comenzando el ciclo desde la posición i = 0 hasta ${tamanoArreglo - 1} \n`;
 
-                const posNum = document.createElement('a-text');
-                posNum.setAttribute('value', i.toString());
-                posNum.setAttribute('position', `0 -0.6 0`);
-                posNum.setAttribute('align', 'center');
-                posNum.setAttribute('color', '#000');
-                posNum.setAttribute('scale', '1.5 1.5 1.5');
+      const colores = ['#4CC3D9','#FFC65D','#F16745','#7BC225','#93648D','#AAAFB4','#3FB8AF','#FF6B6B','#4ECDC4','#556270'];
 
-                box.appendChild(posNum);
-                arrayEntity.appendChild(box);
+      for (let i = 0; i < tamanoArreglo; i++) {
+        pseudo += `    crear espacio en el arreglo en la posición ${i}\n`;
 
-                pasosPseudo += `   Crear cubo en posición ${i}\n`;
-            }
+        const box = document.createElement('a-box');
+        box.setAttribute('position', `${i * 1.2} 0 0`);
+        box.setAttribute('width', '0.9');
+        box.setAttribute('height', '0.9');
+        box.setAttribute('depth', '0.9');
+        box.setAttribute('color', colores[i % colores.length]);
+        box.setAttribute('rotation', '-90 0 0');
 
-            pasosPseudo += `Fin`;
+        // 👆 Habilitar interacción
+        box.setAttribute('class', 'interactive');
+        box.setAttribute('gesture-detector', '');
+        box.setAttribute('grabbable', '');
+        box.setAttribute('stretchable', '');
+        box.setAttribute('draggable', '');
 
-            document.getElementById('pseudocodeDisplay').textContent = pasosPseudo;
-        }
+        const textoFlotante = document.createElement('a-text');
+        textoFlotante.setAttribute('value', `Pos [${i}]`);
+        textoFlotante.setAttribute('position', `0 -0.6 0`);
+        textoFlotante.setAttribute('align', 'center');
+        textoFlotante.setAttribute('color', '#000');
+        box.appendChild(textoFlotante);
 
-        // Ocultar/mostrar paneles en móvil para maximizar la cámara
-        const toggleBtn = document.getElementById('toggleBtn');
-        const controlsPanel = document.getElementById('controlsPanel');
-        const pseudoPanel = document.getElementById('pseudoPanel');
-        let controlsVisible = true;
+        arrayEntity.appendChild(box);
+      }
 
-        toggleBtn.addEventListener('click', () => {
-            controlsVisible = !controlsVisible;
-            controlsPanel.style.display = controlsVisible ? 'flex' : 'none';
-            pseudoPanel.style.display = controlsVisible ? 'block' : 'none';
-            toggleBtn.innerText = controlsVisible ? '☰' : '+';
-        });
+      pseudo += `fin del ciclo\nfin función`;
+      codigoTexto.textContent = pseudo;
+    }
+  </script>
 
-        // Mejorar experiencia en móviles: ocultar barras al enfocar input
-        document.getElementById('arraySize').addEventListener('focus', () => {
-            document.body.style.overflow = 'auto';
-        });
-        document.getElementById('arraySize').addEventListener('blur', () => {
-            document.body.style.overflow = 'hidden';
-        });
-    </script>
 </body>
 </html>
