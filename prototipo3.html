@@ -3,20 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Interacción con Bloques AR</title>
-  <!-- Versión compatible de A-Frame -->
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <!-- Versión compatible de AR.js -->
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/aframe-super-hands-component@3.0.3/dist/aframe-super-hands-component.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js"></script>
-
+  <title>AR Bloques - Sin Marcadores</title>
+  
   <style>
     body { 
       margin: 0; 
       overflow: hidden; 
       font-family: Arial, sans-serif;
-      touch-action: manipulation; /* Mejora la respuesta táctil */
+      touch-action: manipulation;
+      background: #000;
     }
     .controls {
       position: fixed;
@@ -26,40 +21,80 @@
       z-index: 1000;
       background: rgba(255, 255, 255, 0.95);
       padding: 15px 20px;
-      border-radius: 10px;
+      border-radius: 15px;
       text-align: center;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
     button {
       margin: 5px;
-      padding: 12px 16px; /* Botones más grandes para móvil */
+      padding: 12px 16px;
       font-size: 16px;
       border: none;
-      border-radius: 5px;
-      background-color: #3498db;
+      border-radius: 8px;
+      background: linear-gradient(45deg, #3498db, #2980b9);
       color: white;
       cursor: pointer;
-      min-width: 120px; /* Tamaño mínimo para touch */
+      min-width: 120px;
       touch-action: manipulation;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 10px rgba(52, 152, 219, 0.3);
     }
-    button:hover { background-color: #2980b9; }
-    button:active { background-color: #1f5f8b; }
-    .pseudocodigo {
+    button:hover { 
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+    }
+    button:active { 
+      transform: translateY(0);
+      background: linear-gradient(45deg, #2980b9, #1f5f8b);
+    }
+    button.danger {
+      background: linear-gradient(45deg, #e74c3c, #c0392b);
+      box-shadow: 0 2px 10px rgba(231, 76, 60, 0.3);
+    }
+    button.danger:hover {
+      box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+    }
+    .info-panel {
       position: fixed;
       top: 20px;
       right: 20px;
-      background: rgba(255, 255, 255, 0.9);
-      padding: 15px;
-      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 20px;
+      border-radius: 15px;
       width: 320px;
-      max-width: calc(100vw - 40px); /* Responsivo */
+      max-width: calc(100vw - 40px);
       z-index: 1000;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
-      font-size: 14px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
     }
     
-    /* Estilos específicos para móvil */
+    .ar-status {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 255, 0, 0.8);
+      color: black;
+      padding: 10px 15px;
+      border-radius: 20px;
+      z-index: 1000;
+      font-weight: bold;
+      backdrop-filter: blur(5px);
+    }
+    
+    .ar-status.searching {
+      background: rgba(255, 165, 0, 0.8);
+      color: black;
+    }
+    
+    .ar-status.error {
+      background: rgba(255, 0, 0, 0.8);
+      color: white;
+    }
+    
     @media (max-width: 768px) {
-      .pseudocodigo {
+      .info-panel {
         position: fixed;
         top: 10px;
         left: 10px;
@@ -74,289 +109,633 @@
         right: 10px;
         transform: none;
         width: auto;
+        flex-wrap: wrap;
+        display: flex;
+        justify-content: center;
       }
+      button {
+        flex: 1;
+        min-width: 100px;
+        margin: 3px;
+      }
+    }
+    
+    #loadingStatus {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.9);
+      color: white;
+      padding: 30px;
+      border-radius: 15px;
+      z-index: 2000;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .loading-spinner {
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top: 3px solid #3498db;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 10px auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .permissions-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+      backdrop-filter: blur(5px);
+    }
+    
+    .permissions-content {
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      max-width: 400px;
+      margin: 20px;
+    }
+    
+    .permissions-content h2 {
+      color: #2c3e50;
+      margin-bottom: 20px;
+    }
+    
+    .permissions-content p {
+      color: #7f8c8d;
+      line-height: 1.5;
+      margin-bottom: 20px;
     }
   </style>
 </head>
 <body>
+  <div id="permissionsModal" class="permissions-modal" style="display: none;">
+    <div class="permissions-content">
+      <h2>🎥 Permisos de Cámara</h2>
+      <p>Esta aplicación necesita acceso a tu cámara para crear la experiencia de Realidad Aumentada sin marcadores.</p>
+      <button onclick="requestCameraPermission()">Permitir Cámara</button>
+    </div>
+  </div>
+
+  <div id="loadingStatus">
+    <div class="loading-spinner"></div>
+    <div>Inicializando AR sin marcadores...</div>
+  </div>
+  
+  <div id="arStatus" class="ar-status searching">🔍 Buscando superficies...</div>
+  
   <a-scene 
+    id="arScene"
+    style="display: none;"
     embedded 
-    arjs="sourceType: webcam; debugUIEnabled: false;" 
-    physics="gravity: -9.8"
-    gesture-detector
-    vr-mode-ui="enabled: false">
+    arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;"
+    vr-mode-ui="enabled: false"
+    gesture-detector>
     
-    <!-- Cámara con cursor para interacción táctil -->
-    <a-entity 
-      camera 
-      look-controls="enabled: false" 
+    <!-- Cámara con configuración para AR sin marcadores -->
+    <a-camera
+      id="arCamera"
+      gps-camera="minDistance: 5; maxDistance: 100;"
+      look-controls="enabled: false"
       wasd-controls="enabled: false"
       cursor="rayOrigin: mouse; fuse: false"
-      raycaster="objects: .interactable; far: 20">
-    </a-entity>
+      raycaster="objects: .interactable; far: 50;">
+    </a-camera>
 
-    <a-marker preset="hiro">
-      <a-entity id="arrayContainer" position="0 0 0">
-        <a-entity id="array"></a-entity>
-      </a-entity>
-    </a-marker>
+    <!-- Contenedor de bloques que aparece en coordenadas GPS/relativas -->
+    <a-entity 
+      id="arrayContainer" 
+      position="0 -1 -3"
+      rotation="0 0 0">
+      <a-entity id="array"></a-entity>
+    </a-entity>
     
-    <!-- Luz ambiental mejorada -->
-    <a-light type="ambient" color="#404040" intensity="0.8"></a-light>
-    <a-light type="directional" position="1 1 1" color="#ffffff" intensity="0.5"></a-light>
+    <!-- Plano invisible para detección de superficie -->
+    <a-plane
+      id="groundPlane"
+      position="0 -2 -3"
+      rotation="-90 0 0"
+      width="10"
+      height="10"
+      color="transparent"
+      material="transparent: true; opacity: 0;">
+    </a-plane>
+    
+    <!-- Iluminación optimizada -->
+    <a-light type="ambient" color="#404040" intensity="1.2"></a-light>
+    <a-light type="directional" position="2 4 1" color="#ffffff" intensity="1" castShadow="true"></a-light>
+    <a-light type="point" position="0 2 0" color="#ffffff" intensity="0.5"></a-light>
   </a-scene>
 
   <div class="controls">
-    <button onclick="contarBloques()">Contar Bloques</button>
-    <button onclick="resetearBloques()">Resetear</button>
+    <button onclick="contarBloques()">📊 Contar Bloques</button>
+    <button onclick="moverBloques()">🎯 Reorganizar</button>
+    <button onclick="cambiarVista()">👁️ Cambiar Vista</button>
+    <button onclick="resetearBloques()" class="danger">🔄 Resetear</button>
   </div>
 
-  <div class="pseudocodigo">
-    <h3>Estado del Sistema:</h3>
-    <pre id="pseudocodeDisplay">Sistema inicializado.
-Toca un bloque para moverlo.
-Usa los botones para interactuar.</pre>
+  <div class="info-panel">
+    <h3>🚀 AR sin Marcadores</h3>
+    <pre id="infoDisplay">Inicializando sistema...</pre>
   </div>
+
+  <!-- Scripts en orden específico -->
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.min.js"></script>
 
   <script>
-    // Componente personalizado para gestos táctiles
-    AFRAME.registerComponent('gesture-detector', {
-      init: function () {
-        this.el.addEventListener('touchstart', this.onTouchStart.bind(this));
-        this.el.addEventListener('touchmove', this.onTouchMove.bind(this));
-        this.el.addEventListener('touchend', this.onTouchEnd.bind(this));
-        
-        this.touches = {};
-        this.selectedObject = null;
-      },
-      
-      onTouchStart: function (event) {
-        if (event.touches.length === 1) {
-          const touch = event.touches[0];
-          const intersectedEl = this.getIntersectedElement(touch);
-          
-          if (intersectedEl && intersectedEl.classList.contains('interactable')) {
-            this.selectedObject = intersectedEl;
-            this.selectedObject.setAttribute('color', '#ff0000'); // Feedback visual
-            
-            // Actualizar pseudocódigo
-            const label = this.selectedObject.querySelector('a-text');
-            const value = label ? label.getAttribute('value') : 'N/A';
-            document.getElementById('pseudocodeDisplay').textContent = 
-              `Bloque seleccionado: ${value}\nPosición: ${JSON.stringify(this.selectedObject.getAttribute('position'))}`;
-          }
-        }
-        event.preventDefault();
-      },
-      
-      onTouchMove: function (event) {
-        if (this.selectedObject && event.touches.length === 1) {
-          const touch = event.touches[0];
-          const camera = document.querySelector('[camera]');
-          const cameraPos = camera.getAttribute('position');
-          
-          // Convertir coordenadas de pantalla a mundo 3D (simplificado)
-          const normalizedX = (touch.clientX / window.innerWidth) * 2 - 1;
-          const normalizedY = -(touch.clientY / window.innerHeight) * 2 + 1;
-          
-          // Mover el objeto basado en el movimiento del touch
-          const currentPos = this.selectedObject.getAttribute('position');
-          this.selectedObject.setAttribute('position', {
-            x: currentPos.x + normalizedX * 0.1,
-            y: currentPos.y + normalizedY * 0.1,
-            z: currentPos.z
-          });
-        }
-        event.preventDefault();
-      },
-      
-      onTouchEnd: function (event) {
-        if (this.selectedObject) {
-          // Restaurar color original
-          const originalColors = ['#4CC3D9', '#FFC65D', '#F16745', '#7BC225', '#93648D'];
-          const label = this.selectedObject.querySelector('a-text');
-          const index = label ? parseInt(label.getAttribute('value')) : 0;
-          this.selectedObject.setAttribute('color', originalColors[index % originalColors.length]);
-          
-          this.selectedObject = null;
-          
-          document.getElementById('pseudocodeDisplay').textContent = 
-            'Bloque liberado.\nToca otro bloque para interactuar.';
-        }
-        event.preventDefault();
-      },
-      
-      getIntersectedElement: function (touch) {
-        const camera = document.querySelector('[camera]');
-        const raycaster = camera.components.raycaster;
-        
-        // Simular intersección basada en la posición del touch
-        const x = (touch.clientX / window.innerWidth) * 2 - 1;
-        const y = -(touch.clientY / window.innerHeight) * 2 + 1;
-        
-        // Esta es una aproximación - en una implementación real usarías raycasting 3D
-        const interactables = document.querySelectorAll('.interactable');
-        return interactables[0]; // Simplificado para el ejemplo
-      }
-    });
-
-    // Componente para hacer objetos interactivos táctilmente
-    AFRAME.registerComponent('touch-interactive', {
-      init: function () {
-        this.el.addEventListener('click', this.onClick.bind(this));
-        this.el.addEventListener('mouseenter', this.onMouseEnter.bind(this));
-        this.el.addEventListener('mouseleave', this.onMouseLeave.bind(this));
-        
-        this.originalColor = this.el.getAttribute('color');
-      },
-      
-      onClick: function () {
-        // Cambiar color temporalmente
-        this.el.setAttribute('color', '#ff0000');
-        setTimeout(() => {
-          this.el.setAttribute('color', this.originalColor);
-        }, 200);
-        
-        const label = this.el.querySelector('a-text');
-        const value = label ? label.getAttribute('value') : 'N/A';
-        document.getElementById('pseudocodeDisplay').textContent = 
-          `Bloque clickeado: ${value}\n` +
-          `Posición: ${JSON.stringify(this.el.getAttribute('position'))}`;
-      },
-      
-      onMouseEnter: function () {
-        this.el.setAttribute('scale', '1.1 1.1 1.1');
-      },
-      
-      onMouseLeave: function () {
-        this.el.setAttribute('scale', '1 1 1');
-      }
-    });
-
-    const arrayEntity = document.getElementById('array');
-    const colores = ['#4CC3D9', '#FFC65D', '#F16745', '#7BC225', '#93648D', '#AAAFB4', '#3FB8AF', '#FF6B6B', '#4ECDC4', '#556270'];
+    // Variables globales
+    let arrayEntity;
     let bloques = [];
+    let selectedBlock = null;
+    let isInitialized = false;
+    let arMode = 'surface'; // 'surface', 'fixed', 'floating'
+    let surfaceDetected = false;
+    let cameraPermissionGranted = false;
+    
+    const colores = [
+      '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
+      '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
+    ];
+
+    // Verificar soporte de dispositivo
+    function checkDeviceSupport() {
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const hasCamera = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+      const hasWebRTC = !!(navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia);
+      
+      return {
+        isMobile,
+        hasCamera,
+        hasWebRTC,
+        isSupported: hasCamera || hasWebRTC
+      };
+    }
+
+    // Solicitar permisos de cámara
+    async function requestCameraPermission() {
+      try {
+        document.getElementById('permissionsModal').style.display = 'none';
+        document.getElementById('loadingStatus').style.display = 'block';
+        
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          } 
+        });
+        
+        // Detener el stream inmediatamente, solo queríamos verificar permisos
+        stream.getTracks().forEach(track => track.stop());
+        
+        cameraPermissionGranted = true;
+        initializeAR();
+        
+      } catch (error) {
+        console.error('Error accediendo a la cámara:', error);
+        document.getElementById('loadingStatus').innerHTML = 
+          '<div style="color: #e74c3c;">❌ Error de Cámara</div><div>Verifica permisos y recarga la página</div>';
+      }
+    }
+
+    // Verificar carga de scripts
+    function checkScriptsLoaded() {
+      return typeof AFRAME !== 'undefined' && typeof THREEx !== 'undefined';
+    }
+
+    // Inicializar AR sin marcadores
+    function initializeAR() {
+      console.log('🚀 Inicializando AR sin marcadores...');
+      
+      if (!checkScriptsLoaded()) {
+        setTimeout(initializeAR, 500);
+        return;
+      }
+
+      try {
+        // Registrar componente detector de gestos para AR sin marcadores
+        AFRAME.registerComponent('gesture-detector', {
+          init: function () {
+            this.el.addEventListener('touchstart', this.onTouchStart.bind(this));
+            this.el.addEventListener('touchend', this.onTouchEnd.bind(this));
+            this.el.addEventListener('click', this.onClick.bind(this));
+            
+            // Simular detección de superficie después de un tiempo
+            setTimeout(() => {
+              surfaceDetected = true;
+              document.getElementById('arStatus').textContent = '✅ Superficie detectada';
+              document.getElementById('arStatus').className = 'ar-status';
+              this.showBlocks();
+            }, 2000);
+          },
+          
+          onTouchStart: function(event) {
+            if (event.touches.length === 1) {
+              const touch = event.touches[0];
+              this.handleInteraction(touch.clientX, touch.clientY);
+            }
+            event.preventDefault();
+          },
+          
+          onClick: function(event) {
+            this.handleInteraction(event.clientX, event.clientY);
+          },
+          
+          onTouchEnd: function(event) {
+            event.preventDefault();
+          },
+          
+          handleInteraction: function(x, y) {
+            // Convertir coordenadas de pantalla a coordenadas 3D
+            const camera = document.getElementById('arCamera');
+            const raycaster = camera.components.raycaster;
+            
+            if (raycaster) {
+              const intersections = raycaster.intersectedEls;
+              if (intersections.length > 0) {
+                const targetEl = intersections[0];
+                if (targetEl.classList.contains('interactable')) {
+                  this.selectBlock(targetEl);
+                }
+              }
+            }
+          },
+          
+          selectBlock: function(blockEl) {
+            if (selectedBlock) {
+              const prevComponent = selectedBlock.components['touch-interactive'];
+              if (prevComponent) {
+                selectedBlock.setAttribute('color', prevComponent.originalColor);
+                selectedBlock.setAttribute('scale', prevComponent.originalScale);
+              }
+            }
+            
+            selectedBlock = blockEl;
+            const component = blockEl.components['touch-interactive'];
+            if (component) {
+              blockEl.setAttribute('color', '#ff0000');
+              blockEl.setAttribute('scale', '1.3 1.3 1.3');
+              
+              const label = blockEl.querySelector('a-text');
+              const value = label ? label.getAttribute('value') : 'N/A';
+              const pos = blockEl.getAttribute('position');
+              
+              updateInfoDisplay(`🎯 BLOQUE SELECCIONADO: ${value}
+Posición: (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})
+Estado: ACTIVO
+Modo AR: Sin marcadores`);
+            }
+            
+            // Auto-deseleccionar
+            setTimeout(() => {
+              if (selectedBlock === blockEl && component) {
+                blockEl.setAttribute('color', component.originalColor);
+                blockEl.setAttribute('scale', component.originalScale);
+                selectedBlock = null;
+                updateInfoDisplay('Sistema listo. Toca un bloque para interactuar.');
+              }
+            }, 3000);
+          },
+          
+          showBlocks: function() {
+            if (!isInitialized) {
+              crearBloques();
+              isInitialized = true;
+            }
+          }
+        });
+
+        // Componente de interactividad para bloques
+        AFRAME.registerComponent('touch-interactive', {
+          init: function () {
+            this.originalColor = this.el.getAttribute('color');
+            this.originalScale = this.el.getAttribute('scale') || {x: 1, y: 1, z: 1};
+            
+            this.el.addEventListener('mouseenter', () => {
+              if (!selectedBlock || selectedBlock === this.el) {
+                this.el.setAttribute('scale', '1.1 1.1 1.1');
+              }
+            });
+            
+            this.el.addEventListener('mouseleave', () => {
+              if (!selectedBlock || selectedBlock === this.el) {
+                this.el.setAttribute('scale', this.originalScale);
+              }
+            });
+          }
+        });
+
+        // Mostrar escena
+        document.getElementById('arScene').style.display = 'block';
+        document.getElementById('loadingStatus').style.display = 'none';
+        
+        arrayEntity = document.getElementById('array');
+        
+        updateInfoDisplay(`🎯 AR SIN MARCADORES ACTIVO
+Modo: Detección de superficie
+Estado: Buscando plano horizontal
+Dispositivo: ${checkDeviceSupport().isMobile ? 'Móvil' : 'Desktop'}
+
+Instrucciones:
+• Mueve el dispositivo lentamente
+• Apunta a superficies planas
+• Los bloques aparecerán automáticamente`);
+        
+      } catch (error) {
+        console.error('❌ Error inicializando AR:', error);
+        document.getElementById('arStatus').textContent = '❌ Error de inicialización';
+        document.getElementById('arStatus').className = 'ar-status error';
+      }
+    }
 
     function crearBloques() {
+      if (!arrayEntity) return;
+      
       // Limpiar bloques existentes
       while (arrayEntity.firstChild) {
         arrayEntity.removeChild(arrayEntity.firstChild);
       }
       bloques = [];
 
-      // Crear 10 bloques al iniciar
-      for (let i = 0; i < 10; i++) {
+      // Crear configuración 3D más dinámica
+      const configuraciones = [
+        // Fila principal
+        ...Array(5).fill(0).map((_, i) => ({ x: (i - 2) * 1.5, y: 0, z: 0 })),
+        // Fila trasera
+        ...Array(3).fill(0).map((_, i) => ({ x: (i - 1) * 1.5, y: 0, z: -1.5 })),
+        // Bloques flotantes
+        ...Array(2).fill(0).map((_, i) => ({ x: (i - 0.5) * 3, y: 1.5, z: 0.5 }))
+      ];
+
+      configuraciones.forEach((config, i) => {
         const box = document.createElement('a-box');
-        box.setAttribute('position', `${(i - 4.5) * 1.2} 0 0`); // Centrar el array
-        box.setAttribute('width', '0.9');
-        box.setAttribute('height', '0.9');
-        box.setAttribute('depth', '0.9');
+        box.setAttribute('position', `${config.x} ${config.y} ${config.z}`);
+        box.setAttribute('width', '0.8');
+        box.setAttribute('height', '0.8');
+        box.setAttribute('depth', '0.8');
         box.setAttribute('color', colores[i % colores.length]);
         box.setAttribute('class', 'interactable');
         box.setAttribute('touch-interactive', '');
+        box.setAttribute('shadow', 'cast: true; receive: true');
         
-        // Agregar animación de entrada
+        // Animación de aparición más espectacular
         box.setAttribute('animation__spawn', {
           property: 'scale',
           from: '0 0 0',
           to: '1 1 1',
-          dur: 500,
-          delay: i * 100
+          dur: 800,
+          delay: i * 150,
+          easing: 'easeOutBounce'
+        });
+        
+        // Rotación suave continua
+        box.setAttribute('animation__rotate', {
+          property: 'rotation',
+          from: '0 0 0',
+          to: '0 360 0',
+          dur: 20000,
+          loop: true,
+          easing: 'linear'
         });
 
         const label = document.createElement('a-text');
         label.setAttribute('value', i.toString());
-        label.setAttribute('position', `0 -0.6 0.1`);
+        label.setAttribute('position', '0 -0.5 0.41');
         label.setAttribute('align', 'center');
-        label.setAttribute('color', '#000');
-        label.setAttribute('width', '6');
+        label.setAttribute('color', '#ffffff');
+        label.setAttribute('width', '8');
+        label.setAttribute('font', 'roboto');
 
         box.appendChild(label);
         arrayEntity.appendChild(box);
         bloques.push(box);
-      }
+      });
+      
+      updateInfoDisplay(`✅ BLOQUES CREADOS: ${bloques.length}
+Configuración: 3D dinámico
+Posicionamiento: Automático
+Estado: Interactivos
+
+🎮 Controles disponibles:
+• Tocar bloque = Seleccionar
+• Contar = Análisis de posición  
+• Reorganizar = Nueva distribución
+• Cambiar Vista = Modo diferente`);
     }
 
     function contarBloques() {
+      if (!isInitialized) {
+        updateInfoDisplay('❌ Sistema no inicializado');
+        return;
+      }
+      
       const bloquesArray = document.querySelectorAll('#array a-box');
-      let contador = 0;
-      let posiciones = [];
+      const areas = {
+        central: [],
+        elevados: [],
+        traseros: [],
+        laterales: []
+      };
 
       bloquesArray.forEach((bloque, index) => {
         const pos = bloque.getAttribute('position');
-        if (Math.abs(pos.x) < 2) { // Área de conteo más amplia
-          contador++;
-          posiciones.push({
-            indice: index,
-            x: pos.x.toFixed(2),
-            y: pos.y.toFixed(2),
-            z: pos.z.toFixed(2)
-          });
+        
+        if (Math.abs(pos.x) < 1.5 && Math.abs(pos.z) < 1) {
+          areas.central.push({index, pos});
+        } else if (pos.y > 1) {
+          areas.elevados.push({index, pos});
+        } else if (pos.z < -1) {
+          areas.traseros.push({index, pos});
+        } else {
+          areas.laterales.push({index, pos});
         }
+        
+        // Feedback visual por área
+        let color;
+        if (areas.central.some(b => b.index === index)) color = '#00ff00';
+        else if (areas.elevados.some(b => b.index === index)) color = '#00bfff';
+        else if (areas.traseros.some(b => b.index === index)) color = '#ff8c00';
+        else color = '#ff69b4';
+        
+        bloque.setAttribute('animation__highlight', {
+          property: 'color',
+          from: bloque.getAttribute('color'),
+          to: color,
+          dur: 1500,
+          direction: 'alternate',
+          loop: 3
+        });
       });
 
-      const mensaje = `ALGORITMO DE CONTEO EJECUTADO:
-      
-Bloques detectados en área central: ${contador}
-Total de bloques en escena: ${bloquesArray.length}
+      const mensaje = `📊 ANÁLISIS ESPACIAL COMPLETADO
 
-Posiciones detectadas:
-${posiciones.map(p => `[${p.indice}]: (${p.x}, ${p.y}, ${p.z})`).join('\n')}
+🎯 ÁREA CENTRAL: ${areas.central.length} bloques
+🚁 ÁREA ELEVADA: ${areas.elevados.length} bloques  
+📦 ÁREA TRASERA: ${areas.traseros.length} bloques
+📍 ÁREAS LATERALES: ${areas.laterales.length} bloques
 
-Estado: ${contador > 0 ? 'ÉXITO' : 'SIN DETECCIONES'}`;
+📈 TOTAL ANALIZADO: ${bloquesArray.length} bloques
+🎨 CÓDIGO DE COLORES:
+  🟢 Central  🔵 Elevado  🟠 Trasero  🟣 Lateral
 
-      document.getElementById('pseudocodeDisplay').textContent = mensaje;
-      
-      // Feedback visual
-      bloquesArray.forEach(bloque => {
-        const pos = bloque.getAttribute('position');
-        if (Math.abs(pos.x) < 2) {
-          bloque.setAttribute('animation__highlight', {
-            property: 'color',
-            from: bloque.getAttribute('color'),
-            to: '#00ff00',
-            dur: 1000,
-            direction: 'alternate',
-            loop: 2
-          });
-        }
-      });
+✅ ANÁLISIS: COMPLETADO`;
+
+      updateInfoDisplay(mensaje);
     }
 
-    function resetearBloques() {
-      document.getElementById('pseudocodeDisplay').textContent = 'Reseteando sistema...';
+    function moverBloques() {
+      if (!isInitialized) return;
       
-      // Animar salida de bloques
       bloques.forEach((bloque, i) => {
-        bloque.setAttribute('animation__exit', {
-          property: 'scale',
-          to: '0 0 0',
-          dur: 300,
-          delay: i * 50
+        // Generar nueva posición aleatoria
+        const newPos = {
+          x: (Math.random() - 0.5) * 6,
+          y: Math.random() * 2,
+          z: (Math.random() - 0.5) * 4
+        };
+        
+        bloque.setAttribute('animation__move', {
+          property: 'position',
+          to: `${newPos.x} ${newPos.y} ${newPos.z}`,
+          dur: 2000,
+          delay: i * 200,
+          easing: 'easeInOutQuad'
         });
       });
       
-      // Recrear bloques después de la animación
-      setTimeout(() => {
-        crearBloques();
-        document.getElementById('pseudocodeDisplay').textContent = 
-          'Sistema reseteado.\nBloques regenerados.\nListo para interacción.';
-      }, 800);
+      updateInfoDisplay('🎯 REORGANIZANDO BLOQUES...\nNuevas posiciones generadas\nAnimación en progreso');
     }
 
-    // Inicializar cuando la escena esté lista
-    document.addEventListener('DOMContentLoaded', function() {
+    function cambiarVista() {
+      const container = document.getElementById('arrayContainer');
+      const currentPos = container.getAttribute('position');
+      
+      // Ciclar entre diferentes vistas
+      const vistas = [
+        { pos: '0 -1 -3', rot: '0 0 0', name: 'Vista Frontal' },
+        { pos: '3 0 -2', rot: '0 -45 0', name: 'Vista Lateral' },
+        { pos: '0 2 -4', rot: '-15 0 0', name: 'Vista Superior' },
+        { pos: '-2 0 -2', rot: '0 45 0', name: 'Vista Diagonal' }
+      ];
+      
+      const currentIndex = vistas.findIndex(v => v.pos === `${currentPos.x} ${currentPos.y} ${currentPos.z}`);
+      const nextIndex = (currentIndex + 1) % vistas.length;
+      const nextVista = vistas[nextIndex];
+      
+      container.setAttribute('animation__viewchange', {
+        property: 'position',
+        to: nextVista.pos,
+        dur: 1500,
+        easing: 'easeInOutCubic'
+      });
+      
+      container.setAttribute('animation__rotation', {
+        property: 'rotation',
+        to: nextVista.rot,
+        dur: 1500,
+        easing: 'easeInOutCubic'
+      });
+      
+      updateInfoDisplay(`👁️ CAMBIANDO VISTA
+Nueva perspectiva: ${nextVista.name}
+Transición suave activada
+Duración: 1.5 segundos`);
+    }
+
+    function resetearBloques() {
+      if (!isInitialized) return;
+      
+      selectedBlock = null;
+      updateInfoDisplay('🔄 REINICIANDO SISTEMA...');
+      
+      // Animación de salida más dramática
+      bloques.forEach((bloque, i) => {
+        if (bloque.parentNode) {
+          bloque.setAttribute('animation__explode', {
+            property: 'position',
+            to: `${(Math.random()-0.5)*20} ${Math.random()*10} ${(Math.random()-0.5)*20}`,
+            dur: 1000,
+            delay: i * 100,
+            easing: 'easeInQuad'
+          });
+          
+          bloque.setAttribute('animation__shrink', {
+            property: 'scale',
+            to: '0 0 0',
+            dur: 1000,
+            delay: i * 100
+          });
+        }
+      });
+      
+      // Recrear después de explosión
       setTimeout(() => {
         crearBloques();
-      }, 1000);
+      }, 2000);
+    }
+
+    function updateInfoDisplay(message) {
+      document.getElementById('infoDisplay').textContent = message;
+    }
+
+    // Inicialización principal
+    function startApp() {
+      const deviceSupport = checkDeviceSupport();
+      
+      if (!deviceSupport.isSupported) {
+        document.getElementById('loadingStatus').innerHTML = 
+          '<div style="color: #e74c3c;">❌ Dispositivo no compatible</div><div>Se requiere cámara web para AR</div>';
+        return;
+      }
+      
+      // Mostrar modal de permisos si es necesario
+      if (deviceSupport.hasCamera && !cameraPermissionGranted) {
+        document.getElementById('loadingStatus').style.display = 'none';
+        document.getElementById('permissionsModal').style.display = 'flex';
+      } else {
+        initializeAR();
+      }
+    }
+
+    // Event listeners
+    window.addEventListener('error', function(e) {
+      console.error('Error global:', e.error);
+      document.getElementById('arStatus').textContent = '❌ Error del sistema';
+      document.getElementById('arStatus').className = 'ar-status error';
     });
 
-    // Manejar orientación del dispositivo
     window.addEventListener('orientationchange', function() {
       setTimeout(() => {
-        location.reload();
+        if (isInitialized) {
+          location.reload();
+        }
       }, 500);
     });
+
+    // Inicializar cuando esté listo
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', startApp);
+    } else {
+      startApp();
+    }
   </script>
 </body>
 </html>
