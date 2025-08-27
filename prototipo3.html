@@ -8,11 +8,16 @@
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <!-- Versión compatible de AR.js -->
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/aframe-super-hands-component@4.0.5/dist/aframe-super-hands.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-super-hands-component@3.0.3/dist/aframe-super-hands-component.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js"></script>
 
   <style>
-    body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+    body { 
+      margin: 0; 
+      overflow: hidden; 
+      font-family: Arial, sans-serif;
+      touch-action: manipulation; /* Mejora la respuesta táctil */
+    }
     .controls {
       position: fixed;
       bottom: 20px;
@@ -26,15 +31,18 @@
     }
     button {
       margin: 5px;
-      padding: 8px 12px;
+      padding: 12px 16px; /* Botones más grandes para móvil */
       font-size: 16px;
       border: none;
       border-radius: 5px;
       background-color: #3498db;
       color: white;
       cursor: pointer;
+      min-width: 120px; /* Tamaño mínimo para touch */
+      touch-action: manipulation;
     }
     button:hover { background-color: #2980b9; }
+    button:active { background-color: #1f5f8b; }
     .pseudocodigo {
       position: fixed;
       top: 20px;
@@ -43,79 +51,312 @@
       padding: 15px;
       border-radius: 10px;
       width: 320px;
+      max-width: calc(100vw - 40px); /* Responsivo */
       z-index: 1000;
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
       font-size: 14px;
     }
+    
+    /* Estilos específicos para móvil */
+    @media (max-width: 768px) {
+      .pseudocodigo {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        width: auto;
+        max-height: 30vh;
+        overflow-y: auto;
+      }
+      .controls {
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+        transform: none;
+        width: auto;
+      }
+    }
   </style>
 </head>
 <body>
-  <a-scene embedded arjs="sourceType: webcam;" physics="gravity: -9.8">
-    <a-entity camera></a-entity>
+  <a-scene 
+    embedded 
+    arjs="sourceType: webcam; debugUIEnabled: false;" 
+    physics="gravity: -9.8"
+    gesture-detector
+    vr-mode-ui="enabled: false">
+    
+    <!-- Cámara con cursor para interacción táctil -->
+    <a-entity 
+      camera 
+      look-controls="enabled: false" 
+      wasd-controls="enabled: false"
+      cursor="rayOrigin: mouse; fuse: false"
+      raycaster="objects: .interactable; far: 20">
+    </a-entity>
 
     <a-marker preset="hiro">
       <a-entity id="arrayContainer" position="0 0 0">
         <a-entity id="array"></a-entity>
       </a-entity>
-
-      <!-- Mano para interacción -->
-      <a-entity id="hand" super-hands="colliderEvent: raycaster-intersection; grabStartButtons: triggerdown; grabEndButtons: triggerup"
-                laser-controls="hand: right" raycaster="objects: .interactable"></a-entity>
     </a-marker>
+    
+    <!-- Luz ambiental mejorada -->
+    <a-light type="ambient" color="#404040" intensity="0.8"></a-light>
+    <a-light type="directional" position="1 1 1" color="#ffffff" intensity="0.5"></a-light>
   </a-scene>
 
   <div class="controls">
-    <button onclick="contarBloques()">Contar Bloques en Columna</button>
+    <button onclick="contarBloques()">Contar Bloques</button>
+    <button onclick="resetearBloques()">Resetear</button>
   </div>
 
   <div class="pseudocodigo">
-    <h3>Pseudocódigo:</h3>
-    <pre id="pseudocodeDisplay">Esperando interacción...</pre>
+    <h3>Estado del Sistema:</h3>
+    <pre id="pseudocodeDisplay">Sistema inicializado.
+Toca un bloque para moverlo.
+Usa los botones para interactuar.</pre>
   </div>
 
   <script>
+    // Componente personalizado para gestos táctiles
+    AFRAME.registerComponent('gesture-detector', {
+      init: function () {
+        this.el.addEventListener('touchstart', this.onTouchStart.bind(this));
+        this.el.addEventListener('touchmove', this.onTouchMove.bind(this));
+        this.el.addEventListener('touchend', this.onTouchEnd.bind(this));
+        
+        this.touches = {};
+        this.selectedObject = null;
+      },
+      
+      onTouchStart: function (event) {
+        if (event.touches.length === 1) {
+          const touch = event.touches[0];
+          const intersectedEl = this.getIntersectedElement(touch);
+          
+          if (intersectedEl && intersectedEl.classList.contains('interactable')) {
+            this.selectedObject = intersectedEl;
+            this.selectedObject.setAttribute('color', '#ff0000'); // Feedback visual
+            
+            // Actualizar pseudocódigo
+            const label = this.selectedObject.querySelector('a-text');
+            const value = label ? label.getAttribute('value') : 'N/A';
+            document.getElementById('pseudocodeDisplay').textContent = 
+              `Bloque seleccionado: ${value}\nPosición: ${JSON.stringify(this.selectedObject.getAttribute('position'))}`;
+          }
+        }
+        event.preventDefault();
+      },
+      
+      onTouchMove: function (event) {
+        if (this.selectedObject && event.touches.length === 1) {
+          const touch = event.touches[0];
+          const camera = document.querySelector('[camera]');
+          const cameraPos = camera.getAttribute('position');
+          
+          // Convertir coordenadas de pantalla a mundo 3D (simplificado)
+          const normalizedX = (touch.clientX / window.innerWidth) * 2 - 1;
+          const normalizedY = -(touch.clientY / window.innerHeight) * 2 + 1;
+          
+          // Mover el objeto basado en el movimiento del touch
+          const currentPos = this.selectedObject.getAttribute('position');
+          this.selectedObject.setAttribute('position', {
+            x: currentPos.x + normalizedX * 0.1,
+            y: currentPos.y + normalizedY * 0.1,
+            z: currentPos.z
+          });
+        }
+        event.preventDefault();
+      },
+      
+      onTouchEnd: function (event) {
+        if (this.selectedObject) {
+          // Restaurar color original
+          const originalColors = ['#4CC3D9', '#FFC65D', '#F16745', '#7BC225', '#93648D'];
+          const label = this.selectedObject.querySelector('a-text');
+          const index = label ? parseInt(label.getAttribute('value')) : 0;
+          this.selectedObject.setAttribute('color', originalColors[index % originalColors.length]);
+          
+          this.selectedObject = null;
+          
+          document.getElementById('pseudocodeDisplay').textContent = 
+            'Bloque liberado.\nToca otro bloque para interactuar.';
+        }
+        event.preventDefault();
+      },
+      
+      getIntersectedElement: function (touch) {
+        const camera = document.querySelector('[camera]');
+        const raycaster = camera.components.raycaster;
+        
+        // Simular intersección basada en la posición del touch
+        const x = (touch.clientX / window.innerWidth) * 2 - 1;
+        const y = -(touch.clientY / window.innerHeight) * 2 + 1;
+        
+        // Esta es una aproximación - en una implementación real usarías raycasting 3D
+        const interactables = document.querySelectorAll('.interactable');
+        return interactables[0]; // Simplificado para el ejemplo
+      }
+    });
+
+    // Componente para hacer objetos interactivos táctilmente
+    AFRAME.registerComponent('touch-interactive', {
+      init: function () {
+        this.el.addEventListener('click', this.onClick.bind(this));
+        this.el.addEventListener('mouseenter', this.onMouseEnter.bind(this));
+        this.el.addEventListener('mouseleave', this.onMouseLeave.bind(this));
+        
+        this.originalColor = this.el.getAttribute('color');
+      },
+      
+      onClick: function () {
+        // Cambiar color temporalmente
+        this.el.setAttribute('color', '#ff0000');
+        setTimeout(() => {
+          this.el.setAttribute('color', this.originalColor);
+        }, 200);
+        
+        const label = this.el.querySelector('a-text');
+        const value = label ? label.getAttribute('value') : 'N/A';
+        document.getElementById('pseudocodeDisplay').textContent = 
+          `Bloque clickeado: ${value}\n` +
+          `Posición: ${JSON.stringify(this.el.getAttribute('position'))}`;
+      },
+      
+      onMouseEnter: function () {
+        this.el.setAttribute('scale', '1.1 1.1 1.1');
+      },
+      
+      onMouseLeave: function () {
+        this.el.setAttribute('scale', '1 1 1');
+      }
+    });
+
     const arrayEntity = document.getElementById('array');
     const colores = ['#4CC3D9', '#FFC65D', '#F16745', '#7BC225', '#93648D', '#AAAFB4', '#3FB8AF', '#FF6B6B', '#4ECDC4', '#556270'];
+    let bloques = [];
 
-    // Crear 10 bloques al iniciar
-    for (let i = 0; i < 10; i++) {
-      const box = document.createElement('a-box');
-      box.setAttribute('position', `${i * 1.2} 0 0`);
-      box.setAttribute('width', '0.9');
-      box.setAttribute('height', '0.9');
-      box.setAttribute('depth', '0.9');
-      box.setAttribute('color', colores[i % colores.length]);
-      box.setAttribute('class', 'interactable');
-      box.setAttribute('dynamic-body', '');
-      box.setAttribute('grabbable', '');
-      box.setAttribute('rotatable', '');
+    function crearBloques() {
+      // Limpiar bloques existentes
+      while (arrayEntity.firstChild) {
+        arrayEntity.removeChild(arrayEntity.firstChild);
+      }
+      bloques = [];
 
-      const label = document.createElement('a-text');
-      label.setAttribute('value', i.toString());
-      label.setAttribute('position', `0 -0.6 0`);
-      label.setAttribute('align', 'center');
-      label.setAttribute('color', '#000');
+      // Crear 10 bloques al iniciar
+      for (let i = 0; i < 10; i++) {
+        const box = document.createElement('a-box');
+        box.setAttribute('position', `${(i - 4.5) * 1.2} 0 0`); // Centrar el array
+        box.setAttribute('width', '0.9');
+        box.setAttribute('height', '0.9');
+        box.setAttribute('depth', '0.9');
+        box.setAttribute('color', colores[i % colores.length]);
+        box.setAttribute('class', 'interactable');
+        box.setAttribute('touch-interactive', '');
+        
+        // Agregar animación de entrada
+        box.setAttribute('animation__spawn', {
+          property: 'scale',
+          from: '0 0 0',
+          to: '1 1 1',
+          dur: 500,
+          delay: i * 100
+        });
 
-      box.appendChild(label);
-      arrayEntity.appendChild(box);
+        const label = document.createElement('a-text');
+        label.setAttribute('value', i.toString());
+        label.setAttribute('position', `0 -0.6 0.1`);
+        label.setAttribute('align', 'center');
+        label.setAttribute('color', '#000');
+        label.setAttribute('width', '6');
+
+        box.appendChild(label);
+        arrayEntity.appendChild(box);
+        bloques.push(box);
+      }
     }
 
     function contarBloques() {
-      const bloques = document.querySelectorAll('#array a-box');
-      let arregloColumna = [];
+      const bloquesArray = document.querySelectorAll('#array a-box');
+      let contador = 0;
+      let posiciones = [];
 
-      bloques.forEach(b => {
-        const pos = b.getAttribute('position');
-        if (Math.abs(pos.x) < 0.5) {
-          arregloColumna.push(parseFloat(pos.y.toFixed(2)));
+      bloquesArray.forEach((bloque, index) => {
+        const pos = bloque.getAttribute('position');
+        if (Math.abs(pos.x) < 2) { // Área de conteo más amplia
+          contador++;
+          posiciones.push({
+            indice: index,
+            x: pos.x.toFixed(2),
+            y: pos.y.toFixed(2),
+            z: pos.z.toFixed(2)
+          });
         }
       });
 
-      const mensaje = `Se detectaron ${arregloColumna.length} bloques en la columna.\n` +
-                      `Arreglo simulado: [${arregloColumna.join(', ')}]`;
+      const mensaje = `ALGORITMO DE CONTEO EJECUTADO:
+      
+Bloques detectados en área central: ${contador}
+Total de bloques en escena: ${bloquesArray.length}
+
+Posiciones detectadas:
+${posiciones.map(p => `[${p.indice}]: (${p.x}, ${p.y}, ${p.z})`).join('\n')}
+
+Estado: ${contador > 0 ? 'ÉXITO' : 'SIN DETECCIONES'}`;
 
       document.getElementById('pseudocodeDisplay').textContent = mensaje;
+      
+      // Feedback visual
+      bloquesArray.forEach(bloque => {
+        const pos = bloque.getAttribute('position');
+        if (Math.abs(pos.x) < 2) {
+          bloque.setAttribute('animation__highlight', {
+            property: 'color',
+            from: bloque.getAttribute('color'),
+            to: '#00ff00',
+            dur: 1000,
+            direction: 'alternate',
+            loop: 2
+          });
+        }
+      });
     }
+
+    function resetearBloques() {
+      document.getElementById('pseudocodeDisplay').textContent = 'Reseteando sistema...';
+      
+      // Animar salida de bloques
+      bloques.forEach((bloque, i) => {
+        bloque.setAttribute('animation__exit', {
+          property: 'scale',
+          to: '0 0 0',
+          dur: 300,
+          delay: i * 50
+        });
+      });
+      
+      // Recrear bloques después de la animación
+      setTimeout(() => {
+        crearBloques();
+        document.getElementById('pseudocodeDisplay').textContent = 
+          'Sistema reseteado.\nBloques regenerados.\nListo para interacción.';
+      }, 800);
+    }
+
+    // Inicializar cuando la escena esté lista
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(() => {
+        crearBloques();
+      }, 1000);
+    });
+
+    // Manejar orientación del dispositivo
+    window.addEventListener('orientationchange', function() {
+      setTimeout(() => {
+        location.reload();
+      }, 500);
+    });
   </script>
 </body>
 </html>
