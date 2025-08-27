@@ -3,186 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AR Bloques - Sin Marcadores</title>
-  
+  <title>AR Bloques - Sin Marcadores (Actualizado 2025)</title>
   <style>
-    body { 
-      margin: 0; 
-      overflow: hidden; 
-      font-family: Arial, sans-serif;
-      touch-action: manipulation;
-      background: #000;
+    body{margin:0;overflow:hidden;font-family:Arial,sans-serif;touch-action:manipulation;background:#000;}
+    .controls{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:1000;background:rgba(255,255,255,.95);padding:15px 20px;border-radius:15px;text-align:center;backdrop-filter:blur(10px);box-shadow:0 4px 20px rgba(0,0,0,.3);}
+    button{margin:5px;padding:12px 16px;font-size:16px;border:none;border-radius:8px;background:linear-gradient(45deg,#3498db,#2980b9);color:#fff;cursor:pointer;min-width:120px;touch-action:manipulation;transition:.3s;box-shadow:0 2px 10px rgba(52,152,219,.3);}
+    button:hover{transform:translateY(-2px);box-shadow:0 4px 15px rgba(52,152,219,.4);}
+    button:active{transform:translateY(0);background:linear-gradient(45deg,#2980b9,#1f5f8b);}
+    button.danger{background:linear-gradient(45deg,#e74c3c,#c0392b);box-shadow:0 2px 10px rgba(231,76,60,.3);}
+    button.danger:hover{box-shadow:0 4px 15px rgba(231,76,60,.4);}
+    .info-panel{position:fixed;top:20px;right:20px;background:rgba(0,0,0,.8);color:#fff;padding:20px;border-radius:15px;width:320px;max-width:calc(100vw - 40px);z-index:1000;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);}
+    .ar-status{position:fixed;top:20px;left:20px;background:rgba(0,255,0,.8);color:#000;padding:10px 15px;border-radius:20px;z-index:1000;font-weight:bold;backdrop-filter:blur(5px);}
+    .ar-status.searching{background:rgba(255,165,0,.8);color:#000;}
+    .ar-status.error{background:rgba(255,0,0,.8);color:#fff;}
+    @media(max-width:768px){
+      .info-panel{top:10px;left:10px;right:10px;width:auto;max-height:30vh;overflow-y:auto;}
+      .controls{bottom:10px;left:10px;right:10px;transform:none;width:auto;flex-wrap:wrap;display:flex;justify-content:center;}
+      button{flex:1;min-width:100px;margin:3px;}
     }
-    .controls {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 1000;
-      background: rgba(255, 255, 255, 0.95);
-      padding: 15px 20px;
-      border-radius: 15px;
-      text-align: center;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    }
-    button {
-      margin: 5px;
-      padding: 12px 16px;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      background: linear-gradient(45deg, #3498db, #2980b9);
-      color: white;
-      cursor: pointer;
-      min-width: 120px;
-      touch-action: manipulation;
-      transition: all 0.3s ease;
-      box-shadow: 0 2px 10px rgba(52, 152, 219, 0.3);
-    }
-    button:hover { 
-      transform: translateY(-2px);
-      box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
-    }
-    button:active { 
-      transform: translateY(0);
-      background: linear-gradient(45deg, #2980b9, #1f5f8b);
-    }
-    button.danger {
-      background: linear-gradient(45deg, #e74c3c, #c0392b);
-      box-shadow: 0 2px 10px rgba(231, 76, 60, 0.3);
-    }
-    button.danger:hover {
-      box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
-    }
-    .info-panel {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      padding: 20px;
-      border-radius: 15px;
-      width: 320px;
-      max-width: calc(100vw - 40px);
-      z-index: 1000;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-    
-    .ar-status {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      background: rgba(0, 255, 0, 0.8);
-      color: black;
-      padding: 10px 15px;
-      border-radius: 20px;
-      z-index: 1000;
-      font-weight: bold;
-      backdrop-filter: blur(5px);
-    }
-    
-    .ar-status.searching {
-      background: rgba(255, 165, 0, 0.8);
-      color: black;
-    }
-    
-    .ar-status.error {
-      background: rgba(255, 0, 0, 0.8);
-      color: white;
-    }
-    
-    @media (max-width: 768px) {
-      .info-panel {
-        position: fixed;
-        top: 10px;
-        left: 10px;
-        right: 10px;
-        width: auto;
-        max-height: 30vh;
-        overflow-y: auto;
-      }
-      .controls {
-        bottom: 10px;
-        left: 10px;
-        right: 10px;
-        transform: none;
-        width: auto;
-        flex-wrap: wrap;
-        display: flex;
-        justify-content: center;
-      }
-      button {
-        flex: 1;
-        min-width: 100px;
-        margin: 3px;
-      }
-    }
-    
-    #loadingStatus {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0,0,0,0.9);
-      color: white;
-      padding: 30px;
-      border-radius: 15px;
-      z-index: 2000;
-      text-align: center;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.2);
-    }
-    
-    .loading-spinner {
-      border: 3px solid rgba(255,255,255,0.3);
-      border-radius: 50%;
-      border-top: 3px solid #3498db;
-      width: 30px;
-      height: 30px;
-      animation: spin 1s linear infinite;
-      margin: 10px auto;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
-    .permissions-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 3000;
-      backdrop-filter: blur(5px);
-    }
-    
-    .permissions-content {
-      background: white;
-      padding: 30px;
-      border-radius: 15px;
-      text-align: center;
-      max-width: 400px;
-      margin: 20px;
-    }
-    
-    .permissions-content h2 {
-      color: #2c3e50;
-      margin-bottom: 20px;
-    }
-    
-    .permissions-content p {
-      color: #7f8c8d;
-      line-height: 1.5;
-      margin-bottom: 20px;
-    }
+    #loadingStatus{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.9);color:#fff;padding:30px;border-radius:15px;z-index:2000;text-align:center;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.2);}
+    .loading-spinner{border:3px solid rgba(255,255,255,.3);border-radius:50%;border-top:3px solid #3498db;width:30px;height:30px;animation:spin 1s linear infinite;margin:10px auto;}
+    @keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+    .permissions-modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:3000;backdrop-filter:blur(5px);}
+    .permissions-content{background:#fff;padding:30px;border-radius:15px;text-align:center;max-width:400px;margin:20px;}
+    .permissions-content h2{color:#2c3e50;margin-bottom:20px;}
+    .permissions-content p{color:#7f8c8d;line-height:1.5;margin-bottom:20px;}
   </style>
 </head>
 <body>
@@ -193,73 +38,34 @@
       <button onclick="requestCameraPermission()">Permitir Cámara</button>
     </div>
   </div>
-
   <div id="loadingStatus">
     <div class="loading-spinner"></div>
     <div>Inicializando AR sin marcadores...</div>
   </div>
-  
   <div id="arStatus" class="ar-status searching">🔍 Buscando superficies...</div>
-  
-  <a-scene 
-    id="arScene"
-    style="display: none;"
-    embedded 
-    arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;"
-    vr-mode-ui="enabled: false"
-    gesture-detector>
-    
-    <!-- Cámara con configuración para AR sin marcadores -->
-    <a-camera
-      id="arCamera"
-      gps-camera="minDistance: 5; maxDistance: 100;"
-      look-controls="enabled: false"
-      wasd-controls="enabled: false"
-      cursor="rayOrigin: mouse; fuse: false"
-      raycaster="objects: .interactable; far: 50;">
-    </a-camera>
-
-    <!-- Contenedor de bloques que aparece en coordenadas GPS/relativas -->
-    <a-entity 
-      id="arrayContainer" 
-      position="0 -1 -3"
-      rotation="0 0 0">
+  <a-scene id="arScene" style="display:none;" embedded arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;" vr-mode-ui="enabled: false" gesture-detector>
+    <a-camera id="arCamera" gps-camera="minDistance: 5; maxDistance: 100;" look-controls="enabled: false" wasd-controls="enabled: false" cursor="rayOrigin: mouse; fuse: false" raycaster="objects: .interactable; far: 50;"></a-camera>
+    <a-entity id="arrayContainer" position="0 -1 -3" rotation="0 0 0">
       <a-entity id="array"></a-entity>
     </a-entity>
-    
-    <!-- Plano invisible para detección de superficie -->
-    <a-plane
-      id="groundPlane"
-      position="0 -2 -3"
-      rotation="-90 0 0"
-      width="10"
-      height="10"
-      color="transparent"
-      material="transparent: true; opacity: 0;">
-    </a-plane>
-    
-    <!-- Iluminación optimizada -->
+    <a-plane id="groundPlane" position="0 -2 -3" rotation="-90 0 0" width="10" height="10" color="transparent" material="transparent: true; opacity: 0;"></a-plane>
     <a-light type="ambient" color="#404040" intensity="1.2"></a-light>
-    <a-light type="directional" position="2 4 1" color="#ffffff" intensity="1" castShadow="true"></a-light>
-    <a-light type="point" position="0 2 0" color="#ffffff" intensity="0.5"></a-light>
+    <a-light type="directional" position="2 4 1" color="#fff" intensity="1" castShadow="true"></a-light>
+    <a-light type="point" position="0 2 0" color="#fff" intensity="0.5"></a-light>
   </a-scene>
-
   <div class="controls">
     <button onclick="contarBloques()">📊 Contar Bloques</button>
     <button onclick="moverBloques()">🎯 Reorganizar</button>
     <button onclick="cambiarVista()">👁️ Cambiar Vista</button>
     <button onclick="resetearBloques()" class="danger">🔄 Resetear</button>
   </div>
-
   <div class="info-panel">
     <h3>🚀 AR sin Marcadores</h3>
     <pre id="infoDisplay">Inicializando sistema...</pre>
   </div>
-
-  <!-- Scripts en orden específico -->
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.min.js"></script>
-
+  <!-- Últimas versiones de A-Frame y AR.js (2025) -->
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ar.js@3.4.2/aframe/build/aframe-ar.min.js"></script>
   <script>
     // Variables globales
     let arrayEntity;
@@ -269,7 +75,6 @@
     let arMode = 'surface'; // 'surface', 'fixed', 'floating'
     let surfaceDetected = false;
     let cameraPermissionGranted = false;
-    
     const colores = [
       '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
       '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
@@ -280,13 +85,7 @@
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const hasCamera = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
       const hasWebRTC = !!(navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia);
-      
-      return {
-        isMobile,
-        hasCamera,
-        hasWebRTC,
-        isSupported: hasCamera || hasWebRTC
-      };
+      return { isMobile, hasCamera, hasWebRTC, isSupported: hasCamera || hasWebRTC };
     }
 
     // Solicitar permisos de cámara
@@ -294,21 +93,12 @@
       try {
         document.getElementById('permissionsModal').style.display = 'none';
         document.getElementById('loadingStatus').style.display = 'block';
-        
         const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            facingMode: 'environment',
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          } 
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } 
         });
-        
-        // Detener el stream inmediatamente, solo queríamos verificar permisos
         stream.getTracks().forEach(track => track.stop());
-        
         cameraPermissionGranted = true;
         initializeAR();
-        
       } catch (error) {
         console.error('Error accediendo a la cámara:', error);
         document.getElementById('loadingStatus').innerHTML = 
@@ -316,37 +106,31 @@
       }
     }
 
-    // Verificar carga de scripts
+    // Verificar carga de scripts SOLO AFRAME
     function checkScriptsLoaded() {
-      return typeof AFRAME !== 'undefined' && typeof THREEx !== 'undefined';
+      return typeof AFRAME !== 'undefined';
     }
 
     // Inicializar AR sin marcadores
     function initializeAR() {
       console.log('🚀 Inicializando AR sin marcadores...');
-      
       if (!checkScriptsLoaded()) {
-        setTimeout(initializeAR, 500);
+        setTimeout(initializeAR, 300);
         return;
       }
-
       try {
-        // Registrar componente detector de gestos para AR sin marcadores
+        // Componente detector de gestos para AR sin marcadores
         AFRAME.registerComponent('gesture-detector', {
           init: function () {
             this.el.addEventListener('touchstart', this.onTouchStart.bind(this));
             this.el.addEventListener('touchend', this.onTouchEnd.bind(this));
             this.el.addEventListener('click', this.onClick.bind(this));
-            
-            // Simular detección de superficie después de un tiempo
-            setTimeout(() => {
-              surfaceDetected = true;
-              document.getElementById('arStatus').textContent = '✅ Superficie detectada';
-              document.getElementById('arStatus').className = 'ar-status';
-              this.showBlocks();
-            }, 2000);
+            // Superficie detectada INMEDIATAMENTE
+            surfaceDetected = true;
+            document.getElementById('arStatus').textContent = '✅ Superficie detectada';
+            document.getElementById('arStatus').className = 'ar-status';
+            this.showBlocks();
           },
-          
           onTouchStart: function(event) {
             if (event.touches.length === 1) {
               const touch = event.touches[0];
@@ -354,20 +138,15 @@
             }
             event.preventDefault();
           },
-          
           onClick: function(event) {
             this.handleInteraction(event.clientX, event.clientY);
           },
-          
           onTouchEnd: function(event) {
             event.preventDefault();
           },
-          
           handleInteraction: function(x, y) {
-            // Convertir coordenadas de pantalla a coordenadas 3D
             const camera = document.getElementById('arCamera');
             const raycaster = camera.components.raycaster;
-            
             if (raycaster) {
               const intersections = raycaster.intersectedEls;
               if (intersections.length > 0) {
@@ -378,7 +157,6 @@
               }
             }
           },
-          
           selectBlock: function(blockEl) {
             if (selectedBlock) {
               const prevComponent = selectedBlock.components['touch-interactive'];
@@ -387,24 +165,19 @@
                 selectedBlock.setAttribute('scale', prevComponent.originalScale);
               }
             }
-            
             selectedBlock = blockEl;
             const component = blockEl.components['touch-interactive'];
             if (component) {
               blockEl.setAttribute('color', '#ff0000');
               blockEl.setAttribute('scale', '1.3 1.3 1.3');
-              
               const label = blockEl.querySelector('a-text');
               const value = label ? label.getAttribute('value') : 'N/A';
               const pos = blockEl.getAttribute('position');
-              
               updateInfoDisplay(`🎯 BLOQUE SELECCIONADO: ${value}
 Posición: (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})
 Estado: ACTIVO
 Modo AR: Sin marcadores`);
             }
-            
-            // Auto-deseleccionar
             setTimeout(() => {
               if (selectedBlock === blockEl && component) {
                 blockEl.setAttribute('color', component.originalColor);
@@ -414,7 +187,6 @@ Modo AR: Sin marcadores`);
               }
             }, 3000);
           },
-          
           showBlocks: function() {
             if (!isInitialized) {
               crearBloques();
@@ -428,13 +200,11 @@ Modo AR: Sin marcadores`);
           init: function () {
             this.originalColor = this.el.getAttribute('color');
             this.originalScale = this.el.getAttribute('scale') || {x: 1, y: 1, z: 1};
-            
             this.el.addEventListener('mouseenter', () => {
               if (!selectedBlock || selectedBlock === this.el) {
                 this.el.setAttribute('scale', '1.1 1.1 1.1');
               }
             });
-            
             this.el.addEventListener('mouseleave', () => {
               if (!selectedBlock || selectedBlock === this.el) {
                 this.el.setAttribute('scale', this.originalScale);
@@ -446,9 +216,8 @@ Modo AR: Sin marcadores`);
         // Mostrar escena
         document.getElementById('arScene').style.display = 'block';
         document.getElementById('loadingStatus').style.display = 'none';
-        
         arrayEntity = document.getElementById('array');
-        
+
         updateInfoDisplay(`🎯 AR SIN MARCADORES ACTIVO
 Modo: Detección de superficie
 Estado: Buscando plano horizontal
@@ -458,7 +227,6 @@ Instrucciones:
 • Mueve el dispositivo lentamente
 • Apunta a superficies planas
 • Los bloques aparecerán automáticamente`);
-        
       } catch (error) {
         console.error('❌ Error inicializando AR:', error);
         document.getElementById('arStatus').textContent = '❌ Error de inicialización';
@@ -468,23 +236,13 @@ Instrucciones:
 
     function crearBloques() {
       if (!arrayEntity) return;
-      
-      // Limpiar bloques existentes
-      while (arrayEntity.firstChild) {
-        arrayEntity.removeChild(arrayEntity.firstChild);
-      }
+      while (arrayEntity.firstChild) { arrayEntity.removeChild(arrayEntity.firstChild); }
       bloques = [];
-
-      // Crear configuración 3D más dinámica
       const configuraciones = [
-        // Fila principal
         ...Array(5).fill(0).map((_, i) => ({ x: (i - 2) * 1.5, y: 0, z: 0 })),
-        // Fila trasera
         ...Array(3).fill(0).map((_, i) => ({ x: (i - 1) * 1.5, y: 0, z: -1.5 })),
-        // Bloques flotantes
         ...Array(2).fill(0).map((_, i) => ({ x: (i - 0.5) * 3, y: 1.5, z: 0.5 }))
       ];
-
       configuraciones.forEach((config, i) => {
         const box = document.createElement('a-box');
         box.setAttribute('position', `${config.x} ${config.y} ${config.z}`);
@@ -495,8 +253,6 @@ Instrucciones:
         box.setAttribute('class', 'interactable');
         box.setAttribute('touch-interactive', '');
         box.setAttribute('shadow', 'cast: true; receive: true');
-        
-        // Animación de aparición más espectacular
         box.setAttribute('animation__spawn', {
           property: 'scale',
           from: '0 0 0',
@@ -505,8 +261,6 @@ Instrucciones:
           delay: i * 150,
           easing: 'easeOutBounce'
         });
-        
-        // Rotación suave continua
         box.setAttribute('animation__rotate', {
           property: 'rotation',
           from: '0 0 0',
@@ -515,7 +269,6 @@ Instrucciones:
           loop: true,
           easing: 'linear'
         });
-
         const label = document.createElement('a-text');
         label.setAttribute('value', i.toString());
         label.setAttribute('position', '0 -0.5 0.41');
@@ -523,12 +276,10 @@ Instrucciones:
         label.setAttribute('color', '#ffffff');
         label.setAttribute('width', '8');
         label.setAttribute('font', 'roboto');
-
         box.appendChild(label);
         arrayEntity.appendChild(box);
         bloques.push(box);
       });
-      
       updateInfoDisplay(`✅ BLOQUES CREADOS: ${bloques.length}
 Configuración: 3D dinámico
 Posicionamiento: Automático
@@ -546,18 +297,10 @@ Estado: Interactivos
         updateInfoDisplay('❌ Sistema no inicializado');
         return;
       }
-      
       const bloquesArray = document.querySelectorAll('#array a-box');
-      const areas = {
-        central: [],
-        elevados: [],
-        traseros: [],
-        laterales: []
-      };
-
+      const areas = { central: [], elevados: [], traseros: [], laterales: [] };
       bloquesArray.forEach((bloque, index) => {
         const pos = bloque.getAttribute('position');
-        
         if (Math.abs(pos.x) < 1.5 && Math.abs(pos.z) < 1) {
           areas.central.push({index, pos});
         } else if (pos.y > 1) {
@@ -567,14 +310,11 @@ Estado: Interactivos
         } else {
           areas.laterales.push({index, pos});
         }
-        
-        // Feedback visual por área
         let color;
         if (areas.central.some(b => b.index === index)) color = '#00ff00';
         else if (areas.elevados.some(b => b.index === index)) color = '#00bfff';
         else if (areas.traseros.some(b => b.index === index)) color = '#ff8c00';
         else color = '#ff69b4';
-        
         bloque.setAttribute('animation__highlight', {
           property: 'color',
           from: bloque.getAttribute('color'),
@@ -584,7 +324,6 @@ Estado: Interactivos
           loop: 3
         });
       });
-
       const mensaje = `📊 ANÁLISIS ESPACIAL COMPLETADO
 
 🎯 ÁREA CENTRAL: ${areas.central.length} bloques
@@ -597,21 +336,17 @@ Estado: Interactivos
   🟢 Central  🔵 Elevado  🟠 Trasero  🟣 Lateral
 
 ✅ ANÁLISIS: COMPLETADO`;
-
       updateInfoDisplay(mensaje);
     }
 
     function moverBloques() {
       if (!isInitialized) return;
-      
       bloques.forEach((bloque, i) => {
-        // Generar nueva posición aleatoria
         const newPos = {
           x: (Math.random() - 0.5) * 6,
           y: Math.random() * 2,
           z: (Math.random() - 0.5) * 4
         };
-        
         bloque.setAttribute('animation__move', {
           property: 'position',
           to: `${newPos.x} ${newPos.y} ${newPos.z}`,
@@ -620,40 +355,33 @@ Estado: Interactivos
           easing: 'easeInOutQuad'
         });
       });
-      
       updateInfoDisplay('🎯 REORGANIZANDO BLOQUES...\nNuevas posiciones generadas\nAnimación en progreso');
     }
 
     function cambiarVista() {
       const container = document.getElementById('arrayContainer');
       const currentPos = container.getAttribute('position');
-      
-      // Ciclar entre diferentes vistas
       const vistas = [
         { pos: '0 -1 -3', rot: '0 0 0', name: 'Vista Frontal' },
         { pos: '3 0 -2', rot: '0 -45 0', name: 'Vista Lateral' },
         { pos: '0 2 -4', rot: '-15 0 0', name: 'Vista Superior' },
         { pos: '-2 0 -2', rot: '0 45 0', name: 'Vista Diagonal' }
       ];
-      
       const currentIndex = vistas.findIndex(v => v.pos === `${currentPos.x} ${currentPos.y} ${currentPos.z}`);
       const nextIndex = (currentIndex + 1) % vistas.length;
       const nextVista = vistas[nextIndex];
-      
       container.setAttribute('animation__viewchange', {
         property: 'position',
         to: nextVista.pos,
         dur: 1500,
         easing: 'easeInOutCubic'
       });
-      
       container.setAttribute('animation__rotation', {
         property: 'rotation',
         to: nextVista.rot,
         dur: 1500,
         easing: 'easeInOutCubic'
       });
-      
       updateInfoDisplay(`👁️ CAMBIANDO VISTA
 Nueva perspectiva: ${nextVista.name}
 Transición suave activada
@@ -662,11 +390,8 @@ Duración: 1.5 segundos`);
 
     function resetearBloques() {
       if (!isInitialized) return;
-      
       selectedBlock = null;
       updateInfoDisplay('🔄 REINICIANDO SISTEMA...');
-      
-      // Animación de salida más dramática
       bloques.forEach((bloque, i) => {
         if (bloque.parentNode) {
           bloque.setAttribute('animation__explode', {
@@ -676,7 +401,6 @@ Duración: 1.5 segundos`);
             delay: i * 100,
             easing: 'easeInQuad'
           });
-          
           bloque.setAttribute('animation__shrink', {
             property: 'scale',
             to: '0 0 0',
@@ -685,8 +409,6 @@ Duración: 1.5 segundos`);
           });
         }
       });
-      
-      // Recrear después de explosión
       setTimeout(() => {
         crearBloques();
       }, 2000);
@@ -699,14 +421,11 @@ Duración: 1.5 segundos`);
     // Inicialización principal
     function startApp() {
       const deviceSupport = checkDeviceSupport();
-      
       if (!deviceSupport.isSupported) {
         document.getElementById('loadingStatus').innerHTML = 
           '<div style="color: #e74c3c;">❌ Dispositivo no compatible</div><div>Se requiere cámara web para AR</div>';
         return;
       }
-      
-      // Mostrar modal de permisos si es necesario
       if (deviceSupport.hasCamera && !cameraPermissionGranted) {
         document.getElementById('loadingStatus').style.display = 'none';
         document.getElementById('permissionsModal').style.display = 'flex';
@@ -724,9 +443,7 @@ Duración: 1.5 segundos`);
 
     window.addEventListener('orientationchange', function() {
       setTimeout(() => {
-        if (isInitialized) {
-          location.reload();
-        }
+        if (isInitialized) { location.reload(); }
       }, 500);
     });
 
