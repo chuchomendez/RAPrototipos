@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0" />
+  <title>AR DACYTI - Bloques Interactivos y Efectos</title>
+  <style>
+    body{margin:0;overflow:hidden;background:#000;}
+    #loadingStatus{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.9);color:#fff;padding:30px;border-radius:15px;z-index:2000;text-align:center;}
+    .controls{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:1000;background:rgba(255,255,255,.95);padding:15px 20px;border-radius:15px;text-align:center;}
+    button{margin:5px;padding:12px 16px;font-size:16px;border:none;border-radius:8px;background:linear-gradient(45deg,#3498db,#2980b9);color:#fff;cursor:pointer;min-width:120px;transition:.3s;}
+    button.danger{background:linear-gradient(45deg,#e74c3c,#c0392b);}
+    .info-panel{position:fixed;top:20px;right:20px;background:rgba(0,0,0,.8);color:#fff;padding:20px;border-radius:15px;width:320px;max-width:calc(100vw - 40px);z-index:1000;}
+    .ar-status{position:fixed;top:20px;left:20px;background:rgba(0,255,0,.8);color:#000;padding:10px 15px;border-radius:20px;z-index:1000;font-weight:bold;}
+    @media(max-width:768px){
+      .info-panel{width:90vw;}
+      .controls{width:96vw;left:2vw;transform:none;}
+      button{min-width:80px;padding:10px;}
+    }
+  </style>
+</head>
+<body>
+  <div id="loadingStatus">
+    <div>Inicializando AR con activador DACYTI...</div>
+  </div>
+  <div id="arStatus" class="ar-status">🔍 Esperando activador DACYTI...</div>
+  <div class="controls">
+    <button onclick="contarBloques()">📊 Contar Bloques</button>
+    <button onclick="desorganizarBloques()">🎲 Desorganizar</button>
+    <button onclick="resetearBloques()" class="danger">🔄 Resetear</button>
+  </div>
+  <div class="info-panel">
+    <h3>🚀 AR NFT DACYTI</h3>
+    <pre id="infoDisplay">Coloca el activador DACYTI frente a la cámara.<br/>Arrastra los bloques para apilarlos vertical u horizontalmente.</pre>
+  </div>
+
+  <!-- A-Frame 1.7.1, AR.js NFT marker y Super-Hands para interacción táctil/mouse -->
+  <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar-nft.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-super-hands-component@4.0.5/dist/aframe-super-hands.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-animation-component@5.0.3/dist/aframe-animation-component.min.js"></script>
+
+  <a-scene
+    id="scene"
+    vr-mode-ui="enabled: false"
+    embedded
+    renderer="logarithmicDepthBuffer: true;"
+    arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;">
+    
+    <!-- NFT marker DACYTI -->
+    <a-nft
+      type="nft"
+      url="dacyti/dacyti"
+      smooth="true"
+      smoothCount="10"
+      smoothTolerance="0.01"
+      smoothThreshold="5">
+      <!-- Contenedor de bloques y texto activador -->
+      <a-entity id="arrayContainer" position="0 0 0" visible="false">
+        <a-text value="DACYTI" color="#FFD700" position="0 1.3 0" align="center" width="5" side="double" font="roboto"
+          animation="property: rotation; to: 0 360 0; loop: true; dur: 6000; easing: linear"></a-text>
+        <!-- Mano virtual para interacción móvil y mouse -->
+        <a-entity
+          id="hand"
+          super-hands="colliderEvent: raycaster-intersection; colliderEventProperty: els"
+          laser-controls="hand: right"
+          raycaster="objects: .interactable; far: 2"
+          visible="false">
+        </a-entity>
+        <!-- Los bloques se generan dinámicamente aquí -->
+        <a-entity id="array"></a-entity>
+      </a-entity>
+    </a-nft>
+    <!-- Cámara -->
+    <a-entity camera look-controls-enabled="false"></a-entity>
+  </a-scene>
+
+  <script>
+    // Variables y colores
+    let arrayEntity = null, bloques = [], isInitialized = false;
+    const colores = [
+      '#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7',
+      '#DDA0DD','#98D8C8','#F7DC6F','#BB8FCE','#85C1E9'
+    ];
+    // Posiciones iniciales desordenadas
+    const posicionesIniciales = [
+      {x: -0.8, y: 0, z: 0.5},
+      {x: 1.2, y: 0.9, z: -0.5},
+      {x: 0.0, y: 1.7, z: 1.0},
+      {x: -1.3, y: 0.5, z: -1.1},
+      {x: 0.8, y: 2.2, z: 0.3},
+      {x: -0.6, y: 1.5, z: -1.3}
+    ];
+
+    function updateInfoDisplay(msg){document.getElementById('infoDisplay').textContent=msg;}
+    
+    function crearBloques(){
+      arrayEntity = document.getElementById('array');
+      if(!arrayEntity)return;
+      while(arrayEntity.firstChild)arrayEntity.removeChild(arrayEntity.firstChild);
+      bloques=[];
+      // Generar 6 bloques en posiciones desordenadas
+      for(let i=0;i<6;i++){
+        let pos = posicionesIniciales[i];
+        let box=document.createElement('a-box');
+        box.setAttribute('position',`${pos.x} ${pos.y} ${pos.z}`);
+        box.setAttribute('width','0.7');box.setAttribute('height','0.7');box.setAttribute('depth','0.7');
+        box.setAttribute('color',colores[i%colores.length]);
+        box.setAttribute('class','interactable grabbable droppable');
+        box.setAttribute('dynamic-body','mass:0.2');
+        box.setAttribute('id',`block${i}`);
+        // Efectos visuales: rotación y animación de entrada
+        box.setAttribute('animation__spin',`property: rotation; to: 0 360 0; loop: true; dur:${5000+700*i}; easing: linear`);
+        box.setAttribute('animation__appear',`property: scale; from: 0 0 0; to: 1 1 1; dur: 900; delay:${i*300}; easing: easeOutElastic`);
+        box.setAttribute('shadow','cast:true;receive:true');
+        // Efecto de resplandor al agarrar
+        box.setAttribute('event-set__grabstart','_event: grab-start; color: #FFD700; scale: 1.15 1.15 1.15');
+        box.setAttribute('event-set__grabend','_event: grab-end; color: '+colores[i%colores.length]+'; scale: 1 1 1');
+        // Etiqueta del bloque
+        let label=document.createElement('a-text');
+        label.setAttribute('value',i.toString());
+        label.setAttribute('position','0 -0.45 0.36');
+        label.setAttribute('align','center');
+        label.setAttribute('color','#fff');
+        label.setAttribute('width','4');
+        box.appendChild(label);
+        arrayEntity.appendChild(box);
+        bloques.push(box);
+      }
+    }
+
+    // AR.js marker events
+    document.querySelector('a-nft').addEventListener('markerFound',()=>{
+      document.getElementById('loadingStatus').style.display='none';
+      document.getElementById('arStatus').textContent='✅ Activador DACYTI detectado';
+      document.getElementById('arrayContainer').setAttribute('visible','true');
+      document.getElementById('hand').setAttribute('visible','true');
+      if(!isInitialized){crearBloques();isInitialized=true;}
+      updateInfoDisplay('Arrastra los bloques para apilarlos vertical u horizontalmente sobre DACYTI.');
+    });
+    document.querySelector('a-nft').addEventListener('markerLost',()=>{
+      document.getElementById('arStatus').textContent='🔍 Esperando activador DACYTI...';
+      document.getElementById('arrayContainer').setAttribute('visible','false');
+      document.getElementById('hand').setAttribute('visible','false');
+      updateInfoDisplay('Coloca el activador DACYTI frente a la cámara.');
+    });
+
+    // Botón contar bloques
+    function contarBloques(){
+      if(!isInitialized)return updateInfoDisplay('❌ Espera el activador DACYTI.');
+      // Detectar si se formó arreglo horizontal o torre vertical
+      let positions = bloques.map(b=>b.getAttribute('position'));
+      let ySet = new Set(positions.map(p=>Math.round(p.y*10)/10));
+      let xSet = new Set(positions.map(p=>Math.round(p.x*10)/10));
+      let esTorre = xSet.size===1 && ySet.size===bloques.length;
+      let esArreglo = ySet.size===1 && xSet.size===bloques.length;
+      let mensaje = `📦 Bloques activos: ${bloques.length}\n`;
+      if(esTorre) mensaje += '✅ ¡Has formado una torre vertical!';
+      else if(esArreglo) mensaje += '✅ ¡Has formado un arreglo horizontal!';
+      else mensaje += '🔹 Arrastra los bloques para apilarlos en fila o torre.';
+      updateInfoDisplay(mensaje);
+    }
+
+    // Botón desorganizar: mueve a posiciones aleatorias
+    function desorganizarBloques(){
+      if(!isInitialized)return;
+      bloques.forEach((bloque,i)=>{
+        let x = (Math.random()-0.5)*2.5;
+        let y = Math.random()*2.5;
+        let z = (Math.random()-0.5)*2.5;
+        bloque.setAttribute('animation__move',`property: position; to: ${x} ${y} ${z}; dur: 1200; easing: easeOutElastic`);
+      });
+      updateInfoDisplay('🎲 Bloques desorganizados. ¡Intenta apilarlos!');
+    }
+
+    // Botón resetear bloques
+    function resetearBloques(){
+      if(!isInitialized)return;
+      crearBloques();
+      updateInfoDisplay('🔄 Bloques reiniciados.\nArrastra para apilar vertical u horizontalmente.');
+    }
+  </script>
+</body>
+</html>
