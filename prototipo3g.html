@@ -1,0 +1,600 @@
+<html>
+  <head>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <!-- Usando aframe-physics-system desde CDN más confiable -->
+    <script src="https://unpkg.com/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <style>
+      body { margin: 0; overflow: hidden; background: transparent; }
+      
+      #ui {
+        position: fixed;
+        bottom: 20px;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        z-index: 2;
+      }
+      
+      button {
+        padding: 12px 20px;
+        font-size: 16px;
+        background: rgba(78, 205, 196, 0.9);
+        color: white;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        transition: all 0.3s ease;
+      }
+      
+      button:hover {
+        background: rgba(69, 183, 209, 0.9);
+        transform: translateY(-2px);
+      }
+      
+      #info {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        font-size: 18px;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 15px;
+        z-index: 2;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      }
+      
+      #overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        font-size: 1.8em;
+        z-index: 10;
+        flex-direction: column;
+        backdrop-filter: blur(5px);
+      }
+      
+      #debug {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        font-size: 12px;
+        background: rgba(0,0,0,0.7);
+        color: #00ff00;
+        padding: 8px;
+        border-radius: 8px;
+        z-index: 2;
+        font-family: monospace;
+      }
+
+      /* Ocultar elementos de VR */
+      .a-enter-vr { display: none !important; }
+      .a-orientation-modal { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <div id="info">
+      ⏱ Tiempo: <span id="tiempo">60</span> seg<br>
+      🟢 Bloques INT: <span id="contador">0</span>/5<br>
+      📦 Total: <span id="totalBloques">0</span>
+    </div>
+
+    <div id="debug">
+      Físicas: <span id="physics">❌</span><br>
+      Marker: <span id="marker">❌</span><br>
+      Bloques: <span id="activeBloques">0</span>
+    </div>
+
+    <div id="ui">
+      <button onclick="mover(-0.3)">⬅ Izquierda</button>
+      <button onclick="mover(0.3)">➡ Derecha</button>
+      <button onclick="crearBloqueManual()">➕ Añadir Bloque</button>
+      <button onclick="reiniciarJuego()">🔄 Reiniciar</button>
+    </div>
+
+    <div id="overlay">
+      <div style="text-align: center;">
+        🔍 Apunta la cámara al marcador Hiro<br>
+        <small style="font-size: 0.6em; opacity: 0.8;">Asegúrate de tener buena iluminación</small>
+      </div>
+    </div>
+
+    <!-- Escena A-Frame completamente transparente -->
+    <a-scene 
+      embedded 
+      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+      physics="driver: local; gravity: -9.82; debug: false; friction: 0.3; restitution: 0.3;"
+      vr-mode-ui="enabled: false"
+      renderer="antialias: true; alpha: true; colorManagement: true;"
+      background="transparent: true"
+      loading-screen="enabled: false">
+      
+      <!-- Cámara sin controles de look -->
+      <a-entity 
+        camera 
+        look-controls="enabled: false" 
+        wasd-controls="enabled: false"
+        cursor="rayOrigin: mouse">
+      </a-entity>
+      
+      <a-marker preset="hiro" id="hiro-marker" smooth="true" smoothCount="10" smoothTolerance="0.01" smoothThreshold="5">
+        <a-entity id="gameWorld" position="0 0 0">
+          
+          <!-- Plataforma visible (más grande para más espacio) -->
+          <a-box 
+            id="plataforma" 
+            position="0 0 0" 
+            width="2" 
+            height="0.2" 
+            depth="1.5" 
+            color="#2ECC71"
+            static-body="shape: box; type: static;"
+            shadow="receive: true"
+            material="roughness: 0.3; metalness: 0.1">
+            <!-- Brillo en la plataforma -->
+            <a-box 
+              position="0 0.11 0"
+              width="2"
+              height="0.02"
+              depth="1.5"
+              color="#27AE60"
+              material="opacity: 0.7; transparent: true">
+            </a-box>
+          </a-box>
+          
+          <!-- Paredes invisibles AMPLIADAS para contener bloques -->
+          <!-- Izquierda -->
+          <a-box 
+            position="-1.5 1 0" 
+            width="0.1" 
+            height="2" 
+            depth="2" 
+            material="opacity: 0; transparent: true"
+            static-body="shape: box; type: static;">
+          </a-box>
+          
+          <!-- Derecha -->
+          <a-box 
+            position="1.5 1 0" 
+            width="0.1" 
+            height="2" 
+            depth="2" 
+            material="opacity: 0; transparent: true"
+            static-body="shape: box; type: static;">
+          </a-box>
+          
+          <!-- Atrás -->
+          <a-box 
+            position="0 1 -1.2" 
+            width="3" 
+            height="2" 
+            depth="0.1" 
+            material="opacity: 0; transparent: true"
+            static-body="shape: box; type: static;">
+          </a-box>
+          
+          <!-- Adelante -->
+          <a-box 
+            position="0 1 1.2" 
+            width="3" 
+            height="2" 
+            depth="0.1" 
+            material="opacity: 0; transparent: true"
+            static-body="shape: box; type: static;">
+          </a-box>
+          
+          <!-- Suelo invisible para recoger bloques que caen fuera -->
+          <a-plane
+            position="0 -2 0"
+            width="6"
+            height="6"
+            rotation="-90 0 0"
+            material="opacity: 0; transparent: true"
+            static-body="shape: box; type: static;"
+            id="suelo">
+          </a-plane>
+          
+          <!-- Contenedor para bloques -->
+          <a-entity id="arrayBloques"></a-entity>
+          
+          <!-- Iluminación mejorada -->
+          <a-light type="ambient" color="#ffffff" intensity="0.6"></a-light>
+          <a-light type="directional" position="2 4 2" color="#ffffff" intensity="0.8" 
+                   shadow="cast: true; mapSize: 2048;"></a-light>
+        </a-entity>
+      </a-marker>
+    </a-scene>
+
+    <script>
+      // Variables del juego
+      let contador = 0;
+      let totalBloques = 0;
+      let activeBloques = 0;
+      let tiempo = 60;
+      let timer = null;
+      let bloqueInterval = null;
+      let juegoActivo = false;
+      let markerVisible = false;
+      let physicsReady = false;
+      
+      // Referencias DOM
+      const overlay = document.getElementById('overlay');
+      const contadorSpan = document.getElementById("contador");
+      const tiempoSpan = document.getElementById("tiempo");
+      const totalBloquesSpan = document.getElementById("totalBloques");
+      const physicsSpan = document.getElementById("physics");
+      const markerSpan = document.getElementById("marker");
+      const activeBloquesSpan = document.getElementById("activeBloques");
+      
+      let plataforma = null;
+      let arrayBloques = null;
+      let scene = null;
+
+      // Mover plataforma con límites ampliados
+      function mover(direccion) {
+        if (!juegoActivo || !plataforma || !markerVisible) return;
+        
+        let pos = plataforma.getAttribute("position");
+        let newX = pos.x + direccion;
+        
+        // Límites ampliados: -1 a 1 (zona de 2 unidades)
+        newX = Math.max(-1, Math.min(1, newX));
+        
+        plataforma.setAttribute("position", {x: newX, y: pos.y, z: pos.z});
+        
+        // Efecto visual de movimiento
+        plataforma.setAttribute("animation__move", {
+          property: "rotation",
+          to: `0 0 ${direccion > 0 ? -5 : 5}`,
+          dur: 200
+        });
+        
+        setTimeout(() => {
+          plataforma.setAttribute("animation__back", {
+            property: "rotation",
+            to: "0 0 0",
+            dur: 200
+          });
+        }, 200);
+      }
+
+      // Crear bloque con físicas mejoradas
+      function crearBloque() {
+        if (!juegoActivo || !arrayBloques || !markerVisible || !physicsReady) {
+          console.log("No se puede crear bloque:", {juegoActivo, arrayBloques: !!arrayBloques, markerVisible, physicsReady});
+          return;
+        }
+        
+        const tipos = [
+          {color:"#FF6B6B", tipo:"char", name:"CHAR"},
+          {color:"#4ECDC4", tipo:"int", name:"INT"},
+          {color:"#FFEAA7", tipo:"float", name:"FLOAT"}
+        ];
+        
+        let tipoElegido = tipos[Math.floor(Math.random() * tipos.length)];
+        
+        // Crear elemento bloque
+        let bloque = document.createElement("a-box");
+        bloque.className = "bloque-juego";
+        
+        // Posición inicial aleatoria arriba del marcador
+        let startX = (Math.random() - 0.5) * 2; // Entre -1 y 1
+        let startY = 3 + Math.random(); // Entre 3 y 4 unidades arriba
+        let startZ = (Math.random() - 0.5) * 1; // Entre -0.5 y 0.5
+        
+        // Configurar propiedades del bloque
+        bloque.setAttribute("position", `${startX} ${startY} ${startZ}`);
+        bloque.setAttribute("width", "0.2");
+        bloque.setAttribute("height", "0.2");
+        bloque.setAttribute("depth", "0.2");
+        bloque.setAttribute("color", tipoElegido.color);
+        bloque.setAttribute("shadow", "cast: true; receive: false");
+        bloque.setAttribute("material", "roughness: 0.4; metalness: 0.2;");
+        
+        // FÍSICAS: Configurar después de agregar al DOM
+        bloque.dataset.tipo = tipoElegido.tipo;
+        bloque.dataset.contado = "false";
+        bloque.dataset.id = `bloque_${Date.now()}_${Math.random()}`;
+        
+        // Agregar al contenedor
+        arrayBloques.appendChild(bloque);
+        totalBloques++;
+        activeBloques++;
+        actualizarContadores();
+        
+        // Configurar físicas DESPUÉS de que esté en el DOM
+        setTimeout(() => {
+          try {
+            bloque.setAttribute("dynamic-body", {
+              shape: "box",
+              mass: 1,
+              linearDamping: 0.1,
+              angularDamping: 0.3
+            });
+            
+            console.log(`Bloque ${tipoElegido.name} creado en posición:`, {startX, startY, startZ});
+            
+            // Aplicar impulso inicial después de que el cuerpo esté listo
+            bloque.addEventListener('body-loaded', () => {
+              setTimeout(() => {
+                if (bloque.body) {
+                  // Pequeño impulso aleatorio
+                  let impulseX = (Math.random() - 0.5) * 0.5;
+                  let impulseZ = (Math.random() - 0.5) * 0.5;
+                  bloque.body.applyImpulse(
+                    new CANNON.Vec3(impulseX, 0, impulseZ),
+                    bloque.body.position
+                  );
+                }
+              }, 100);
+            });
+            
+          } catch (error) {
+            console.error("Error configurando físicas:", error);
+          }
+        }, 50);
+
+        // Evento de colisión
+        bloque.addEventListener("collide", (event) => {
+          let targetId = event.detail.body.el ? event.detail.body.el.id : '';
+          
+          if (targetId === "plataforma" && bloque.dataset.contado === "false") {
+            bloque.dataset.contado = "true";
+            
+            if (tipoElegido.tipo === "int") {
+              contador++;
+              actualizarContadores();
+              
+              // Efecto visual de éxito
+              bloque.setAttribute("animation__success", {
+                property: "scale",
+                to: "1.3 1.3 1.3",
+                dur: 300,
+                direction: "alternate",
+                loop: 1
+              });
+              
+              // Cambiar color brevemente
+              let colorOriginal = bloque.getAttribute("color");
+              bloque.setAttribute("color", "#00FF00");
+              setTimeout(() => {
+                bloque.setAttribute("color", colorOriginal);
+              }, 500);
+              
+              console.log(`¡Bloque INT contado! Total: ${contador}`);
+              
+              if (contador >= 5) {
+                setTimeout(() => terminarJuego(true), 1000);
+              }
+            }
+          }
+          
+          // Si toca el suelo, marcarlo para limpieza
+          if (targetId === "suelo") {
+            setTimeout(() => limpiarBloque(bloque), 2000);
+          }
+        });
+
+        // Auto-limpieza si el bloque cae muy lejos
+        setTimeout(() => {
+          if (bloque.parentElement) {
+            let pos = bloque.getAttribute("position");
+            if (pos.y < -5) {
+              limpiarBloque(bloque);
+            }
+          }
+        }, 10000);
+      }
+      
+      function limpiarBloque(bloque) {
+        if (bloque && bloque.parentElement) {
+          bloque.parentElement.removeChild(bloque);
+          activeBloques--;
+          actualizarContadores();
+        }
+      }
+      
+      function crearBloqueManual() {
+        if (markerVisible && physicsReady) {
+          crearBloque();
+        } else {
+          console.log("No se puede crear bloque manual:", {markerVisible, physicsReady});
+        }
+      }
+      
+      function actualizarContadores() {
+        contadorSpan.textContent = contador;
+        totalBloquesSpan.textContent = totalBloques;
+        activeBloquesSpan.textContent = activeBloques;
+      }
+
+      function iniciarJuego() {
+        if (juegoActivo || !physicsReady || !markerVisible) return;
+        
+        juegoActivo = true;
+        overlay.style.display = "none";
+        
+        // Reset contadores
+        contador = 0;
+        totalBloques = 0;
+        activeBloques = 0;
+        tiempo = 60;
+        actualizarContadores();
+        tiempoSpan.textContent = tiempo;
+        
+        // Limpiar bloques anteriores
+        if (arrayBloques) {
+          arrayBloques.innerHTML = "";
+        }
+        
+        console.log("Juego iniciado");
+        
+        // Crear bloques automáticamente
+        bloqueInterval = setInterval(() => {
+          if (juegoActivo && markerVisible && activeBloques < 10) {
+            crearBloque();
+          }
+        }, 3000);
+        
+        // Timer del juego
+        timer = setInterval(() => {
+          tiempo--;
+          tiempoSpan.textContent = tiempo;
+          if (tiempo <= 0) {
+            terminarJuego(false);
+          }
+        }, 1000);
+      }
+
+      function terminarJuego(ganaste) {
+        juegoActivo = false;
+        clearInterval(timer);
+        clearInterval(bloqueInterval);
+        
+        overlay.style.display = "flex";
+        
+        if (ganaste) {
+          overlay.innerHTML = `
+            <div style="text-align: center;">
+              <div style="font-size: 2em;">🎉</div>
+              <div>¡FELICIDADES!</div>
+              <div style="font-size: 0.8em; margin: 10px 0;">Conseguiste ${contador} bloques INT</div>
+              <button onclick='reiniciarJuego()' style='margin-top: 15px; padding: 12px 24px; font-size: 16px; background: #4ECDC4; color: white; border: none; border-radius: 20px; cursor: pointer;'>
+                🎮 Jugar de nuevo
+              </button>
+            </div>
+          `;
+        } else {
+          overlay.innerHTML = `
+            <div style="text-align: center;">
+              <div style="font-size: 2em;">⏰</div>
+              <div>¡Tiempo agotado!</div>
+              <div style="font-size: 0.8em; margin: 10px 0;">Conseguiste ${contador}/5 bloques INT</div>
+              <button onclick='reiniciarJuego()' style='margin-top: 15px; padding: 12px 24px; font-size: 16px; background: #FF6B6B; color: white; border: none; border-radius: 20px; cursor: pointer;'>
+                🔄 Intentar de nuevo
+              </button>
+            </div>
+          `;
+        }
+      }
+
+      function reiniciarJuego() {
+        // Detener todo
+        juegoActivo = false;
+        clearInterval(timer);
+        clearInterval(bloqueInterval);
+        
+        // Reset variables
+        contador = 0;
+        totalBloques = 0;
+        activeBloques = 0;
+        tiempo = 60;
+        
+        actualizarContadores();
+        tiempoSpan.textContent = tiempo;
+        
+        // Limpiar bloques
+        if (arrayBloques) {
+          arrayBloques.innerHTML = "";
+        }
+        
+        // Reiniciar si el marcador está visible
+        if (markerVisible && physicsReady) {
+          overlay.style.display = "none";
+          setTimeout(iniciarJuego, 500);
+        } else {
+          overlay.style.display = "flex";
+          overlay.innerHTML = `
+            <div style="text-align: center;">
+              🔍 Apunta la cámara al marcador Hiro<br>
+              <small style="font-size: 0.6em; opacity: 0.8;">Asegúrate de tener buena iluminación</small>
+            </div>
+          `;
+        }
+      }
+
+      // Inicialización
+      document.addEventListener('DOMContentLoaded', () => {
+        console.log("🚀 Iniciando aplicación AR...");
+        
+        // Obtener referencias de botones
+        btnComenzar = document.getElementById('btnComenzar');
+        btnIzquierda = document.getElementById('btnIzquierda');
+        btnDerecha = document.getElementById('btnDerecha');
+        btnAgregar = document.getElementById('btnAgregar');
+        btnReiniciar = document.getElementById('btnReiniciar');
+        
+        console.log("✅ Referencias de botones obtenidas:", {
+          btnComenzar: !!btnComenzar,
+          btnIzquierda: !!btnIzquierda,
+          btnDerecha: !!btnDerecha,
+          btnAgregar: !!btnAgregar,
+          btnReiniciar: !!btnReiniciar
+        });
+        
+        scene = document.querySelector('a-scene');
+        
+        scene.addEventListener('loaded', () => {
+          console.log("Escena A-Frame cargada");
+          
+          // Verificar sistema de físicas
+          setTimeout(() => {
+            if (scene.systems && scene.systems.physics) {
+              physicsReady = true;
+              physicsSpan.textContent = "✅";
+              console.log("Sistema de físicas listo");
+            } else {
+              console.error("Sistema de físicas no disponible");
+            }
+          }, 1000);
+          
+          // Configurar eventos del marcador
+          const marker = document.getElementById('hiro-marker');
+          
+          marker.addEventListener('markerFound', () => {
+            console.log("Marcador encontrado");
+            markerVisible = true;
+            markerSpan.textContent = "✅";
+            
+            // Obtener referencias
+            plataforma = document.getElementById("plataforma");
+            arrayBloques = document.getElementById("arrayBloques");
+            
+            if (physicsReady && !juegoActivo) {
+              setTimeout(iniciarJuego, 1500);
+            }
+          });
+          
+          marker.addEventListener('markerLost', () => {
+            console.log("📍 Marcador perdido");
+            markerVisible = false;
+            markerSpan.textContent = "❌";
+            
+            if (juegoActivo) {
+              juegoActivo = false;
+              clearInterval(timer);
+              clearInterval(bloqueInterval);
+              
+              overlay.style.display = "flex";
+              overlay.innerHTML = `
+                <div style="text-align: center;">
+                  🔍 Marcador perdido - Juego pausado<br>
+                  <small style="font-size: 0.6em; opacity: 0.8;">Apunta de nuevo al marcador Hiro</small>
+                </div>
+              `;
+            }
+          });
+        });
+      });
+    </script>
+  </body>
+</html>
