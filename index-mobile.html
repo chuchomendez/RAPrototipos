@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>AR Arrays — Aprende Arreglos en Realidad Aumentada</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <style>
+    :root {
+      --bg: #07080f;
+      --surface: #0d1117;
+      --card: #131823;
+      --card2: #1a2235;
+      --border: #1f2d44;
+      --primary: #4ecdc4;
+      --primary-dim: rgba(78,205,196,0.15);
+      --primary-glow: rgba(78,205,196,0.4);
+      --secondary: #ffd700;
+      --secondary-dim: rgba(255,215,0,0.12);
+      --accent: #ff6b9d;
+      --text: #e8edf5;
+      --text-dim: #7a8fa8;
+      --text-muted: #4a5568;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+
+    /* ── SCREENS ──────────────────────────────── */
+    .screen {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      transition: opacity .35s ease, transform .35s ease;
+      will-change: opacity, transform;
+      padding: calc(var(--safe-top) + 16px) 20px calc(var(--safe-bottom) + 16px);
+    }
+    .screen.hidden { opacity: 0; pointer-events: none; transform: translateY(24px); }
+
+    /* ── WELCOME SCREEN ─────────────────────── */
+    #screen-home {
+      background: var(--bg);
+      align-items: center; justify-content: center;
+      gap: 0;
+      overflow-y: auto;
+    }
+
+    .hero-graphic {
+      width: 100%; max-width: 320px;
+      margin: 0 auto 32px;
+      position: relative;
+    }
+    .array-visual {
+      display: flex; gap: 8px; justify-content: center;
+      padding: 8px;
+    }
+    .locker-preview {
+      width: 56px; height: 72px;
+      background: var(--card2);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 4px;
+      position: relative;
+      transition: all .3s ease;
+    }
+    .locker-preview.lit {
+      border-color: var(--primary);
+      background: var(--primary-dim);
+      box-shadow: 0 0 20px var(--primary-glow);
+    }
+    .locker-preview .idx {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 600;
+      color: var(--text-dim);
+      position: absolute; top: 6px;
+    }
+    .locker-preview .val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px; font-weight: 700;
+      color: var(--primary);
+    }
+    .locker-preview.lit .val { color: var(--primary); }
+    .locker-preview.empty .val { color: var(--text-muted); font-size: 11px; }
+
+    .hero-title {
+      text-align: center; margin-bottom: 8px;
+    }
+    .hero-title h1 {
+      font-size: clamp(28px, 7vw, 38px);
+      font-weight: 700; letter-spacing: -0.5px;
+      line-height: 1.1;
+    }
+    .hero-title h1 span { color: var(--primary); }
+    .hero-title p {
+      font-size: 15px; color: var(--text-dim);
+      margin-top: 8px; line-height: 1.5;
+    }
+
+    .features {
+      width: 100%; max-width: 360px;
+      display: flex; flex-direction: column; gap: 10px;
+      margin: 24px auto 0;
+    }
+    .feature-item {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+    }
+    .feature-icon {
+      width: 38px; height: 38px; flex-shrink: 0;
+      background: var(--primary-dim);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .feature-text h3 { font-size: 14px; font-weight: 600; }
+    .feature-text p { font-size: 12px; color: var(--text-dim); margin-top: 2px; line-height: 1.4; }
+
+    .cta-zone {
+      width: 100%; max-width: 360px;
+      margin: 24px auto 0;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+
+    /* ── LEARN SCREEN ───────────────────────── */
+    #screen-learn {
+      background: var(--bg);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .page-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 24px;
+    }
+    .back-btn {
+      width: 40px; height: 40px; flex-shrink: 0;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text);
+      font-size: 18px;
+    }
+    .page-header h2 {
+      font-size: 20px; font-weight: 700;
+    }
+
+    .lesson-tabs {
+      display: flex; gap: 8px;
+      overflow-x: auto; padding-bottom: 4px;
+      margin-bottom: 20px;
+      scrollbar-width: none;
+    }
+    .lesson-tabs::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex-shrink: 0;
+      padding: 8px 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      color: var(--text-dim);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px; font-weight: 500;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .tab-btn.active {
+      background: var(--primary-dim);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .lesson-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .lesson-card h3 {
+      font-size: 16px; font-weight: 600;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .lesson-card p {
+      font-size: 14px; color: var(--text-dim);
+      line-height: 1.6; margin-bottom: 12px;
+    }
+    .lesson-card p:last-child { margin-bottom: 0; }
+
+    .code-block {
+      background: #0a0e17;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      overflow-x: auto;
+      white-space: pre;
+      margin: 12px 0;
+    }
+    .kw { color: #ff79c6; }
+    .str { color: #f1fa8c; }
+    .num { color: #bd93f9; }
+    .fn { color: var(--primary); }
+    .cm { color: #6272a4; }
+    .op { color: #ff6b9d; }
+
+    .array-demo {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      margin: 14px 0;
+    }
+    .cell {
+      min-width: 52px; padding: 8px 10px;
+      background: var(--card2);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      text-align: center;
+    }
+    .cell .c-idx {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--text-muted);
+      display: block;
+    }
+    .cell .c-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px; font-weight: 700;
+      color: var(--text);
+      display: block; margin-top: 2px;
+    }
+    .cell.highlight { border-color: var(--primary); background: var(--primary-dim); }
+    .cell.highlight .c-val { color: var(--primary); }
+
+    /* ── AR SIMULATOR ───────────────────────── */
+    #screen-sim {
+      background: var(--bg);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .sim-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .array-state-bar {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+    }
+    .array-state-bar label {
+      font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--text-muted);
+      font-weight: 600;
+    }
+    .code-output {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px; color: var(--primary);
+      margin-top: 6px; word-break: break-all;
+    }
+
+    .lockers-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .locker-card {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 10px;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 8px;
+      cursor: pointer;
+      transition: all .2s ease;
+      min-height: 100px; justify-content: center;
+      -webkit-user-select: none; user-select: none;
+      touch-action: manipulation;
+    }
+    .locker-card:active { transform: scale(0.96); }
+    .locker-card.selected {
+      border-color: var(--secondary);
+      background: var(--secondary-dim);
+      box-shadow: 0 0 20px rgba(255,215,0,0.2);
+    }
+    .locker-card.filled {
+      border-color: var(--primary);
+      background: var(--primary-dim);
+    }
+    .locker-icon { font-size: 28px; }
+    .locker-index {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--text-muted); font-weight: 600;
+    }
+    .locker-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px; font-weight: 700;
+      color: var(--primary);
+      min-height: 22px; text-align: center;
+    }
+    .locker-value.empty-val { color: var(--text-muted); font-size: 11px; }
+
+    .input-zone {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .input-zone label {
+      display: block; font-size: 12px; font-weight: 600;
+      color: var(--text-dim); margin-bottom: 10px;
+      text-transform: uppercase; letter-spacing: 0.07em;
+    }
+    .selected-indicator {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px; color: var(--secondary);
+      margin-bottom: 12px; min-height: 22px;
+    }
+    .input-row {
+      display: flex; gap: 10px;
+    }
+    input[type="text"], input[type="number"] {
+      flex: 1;
+      background: var(--card2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px; color: var(--text);
+      outline: none;
+      transition: border-color .2s;
+      -webkit-appearance: none; appearance: none;
+    }
+    input[type="text"]:focus, input[type="number"]:focus {
+      border-color: var(--primary);
+    }
+    input::placeholder { color: var(--text-muted); }
+
+    .op-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-top: 16px;
+    }
+    .op-btn {
+      background: var(--card2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 10px;
+      display: flex; align-items: center; gap: 8px;
+      cursor: pointer; color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px; font-weight: 600;
+      touch-action: manipulation;
+      transition: all .2s;
+    }
+    .op-btn:active { transform: scale(0.97); }
+    .op-btn .op-icon { font-size: 18px; }
+    .op-btn.danger { border-color: rgba(255,107,157,0.3); }
+    .op-btn.danger:active { background: rgba(255,107,157,0.1); }
+
+    /* ── AR MODE ────────────────────────────── */
+    #screen-ar {
+      padding: 0;
+      background: #000;
+    }
+    #screen-ar.hidden { display: none; }
+
+    #ar-scene {
+      position: fixed; inset: 0;
+      width: 100% !important; height: 100% !important;
+    }
+    .a-canvas { width: 100% !important; height: 100% !important; }
+
+    .ar-ui-overlay {
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 10;
+      display: flex; flex-direction: column;
+      justify-content: space-between;
+      padding: calc(var(--safe-top) + 16px) 20px calc(var(--safe-bottom) + 16px);
+    }
+    .ar-top-bar {
+      display: flex; justify-content: space-between; align-items: flex-start;
+    }
+    .ar-badge {
+      background: rgba(7,8,15,0.8);
+      border: 1px solid rgba(78,205,196,0.3);
+      border-radius: 100px;
+      padding: 8px 16px;
+      font-size: 13px; font-weight: 600;
+      color: var(--primary);
+      backdrop-filter: blur(12px);
+      pointer-events: auto;
+    }
+    .ar-exit-btn {
+      background: rgba(7,8,15,0.8);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 8px 18px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px; font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      pointer-events: auto;
+      touch-action: manipulation;
+    }
+    .ar-hint {
+      background: rgba(7,8,15,0.85);
+      border: 1px solid rgba(78,205,196,0.2);
+      border-radius: 14px;
+      padding: 16px 20px;
+      backdrop-filter: blur(16px);
+      pointer-events: auto;
+    }
+    .ar-hint h4 {
+      font-size: 13px; font-weight: 700;
+      color: var(--primary); margin-bottom: 6px;
+    }
+    .ar-hint p { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+    .hiro-img { width: 60px; border-radius: 8px; margin-top: 10px; }
+    .ar-array-display {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .ar-cell {
+      background: rgba(78,205,196,0.15);
+      border: 1.5px solid var(--primary);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; font-weight: 700;
+      color: var(--primary);
+    }
+    .ar-cell.empty-ar { border-color: var(--border); background: rgba(255,255,255,0.05); color: var(--text-muted); }
+
+    /* ── BUTTONS ────────────────────────────── */
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      padding: 15px 24px;
+      border-radius: var(--radius-sm);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15px; font-weight: 600;
+      cursor: pointer; border: none;
+      transition: all .2s ease;
+      touch-action: manipulation;
+      -webkit-user-select: none; user-select: none;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary {
+      background: var(--primary);
+      color: #07080f;
+      box-shadow: 0 4px 24px var(--primary-glow);
+    }
+    .btn-primary:active { box-shadow: 0 2px 12px var(--primary-glow); }
+    .btn-secondary {
+      background: var(--card2);
+      color: var(--text);
+      border: 1.5px solid var(--border);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-dim);
+      border: 1.5px solid var(--border);
+    }
+    .btn-danger {
+      background: rgba(255,107,157,0.15);
+      color: var(--accent);
+      border: 1.5px solid rgba(255,107,157,0.3);
+    }
+    .btn-ar {
+      background: linear-gradient(135deg, var(--primary) 0%, #36b3ab 100%);
+      color: #07080f;
+      box-shadow: 0 6px 32px var(--primary-glow);
+      font-size: 16px;
+    }
+
+    /* ── TOAST ──────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: calc(var(--safe-bottom) + 24px);
+      left: 50%; transform: translateX(-50%) translateY(80px);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 12px 24px;
+      font-size: 13px; font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+      z-index: 9999;
+      transition: transform .3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity .3s;
+      opacity: 0;
+      pointer-events: none;
+      backdrop-filter: blur(12px);
+    }
+    #toast.show {
+      transform: translateX(-50%) translateY(0px);
+      opacity: 1;
+    }
+    #toast.success { border-color: rgba(78,205,196,0.4); color: var(--primary); }
+    #toast.warn { border-color: rgba(255,215,0,0.4); color: var(--secondary); }
+
+    /* ── BOTTOM NAV ─────────────────────────── */
+    #bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: calc(64px + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: rgba(13,17,23,0.95);
+      border-top: 1px solid var(--border);
+      display: flex;
+      backdrop-filter: blur(20px);
+      z-index: 100;
+    }
+    #bottom-nav.hidden { display: none; }
+    .nav-item {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 4px;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: opacity .15s;
+    }
+    .nav-item:active { opacity: 0.7; }
+    .nav-icon { font-size: 22px; }
+    .nav-label { font-size: 10px; font-weight: 600; color: var(--text-muted); }
+    .nav-item.active .nav-icon { filter: drop-shadow(0 0 6px var(--primary)); }
+    .nav-item.active .nav-label { color: var(--primary); }
+
+    /* ── SCROLLABLE PADDING ─────────────────── */
+    .has-nav { padding-bottom: calc(80px + var(--safe-bottom)) !important; }
+
+    /* ── ANIMATIONS ─────────────────────────── */
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 10px var(--primary-glow); }
+      50% { box-shadow: 0 0 30px var(--primary-glow); }
+    }
+    .locker-preview.lit { animation: pulse-glow 2s ease-in-out infinite; }
+
+    /* ── MARKER INSTRUCTION ───────────────── */
+    .marker-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .marker-box h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+    .marker-box p { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+    .hiro-preview {
+      width: 100px; height: 100px;
+      border: 3px solid var(--primary);
+      border-radius: 12px;
+      margin: 14px auto;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .hiro-preview img { width: 100%; }
+
+    /* ── SECTION TITLE ──────────────────────── */
+    .section-title {
+      font-size: 12px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    /* ── PERMISSION SCREEN ──────────────────── */
+    .centered-content {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; gap: 16px;
+    }
+    .perm-icon { font-size: 56px; }
+    .perm-title { font-size: 22px; font-weight: 700; }
+    .perm-body { font-size: 14px; color: var(--text-dim); line-height: 1.6; max-width: 280px; }
+
+    /* ── QUIZ CARD ──────────────────────────── */
+    .quiz-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .quiz-card .q-num {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--primary); font-weight: 700; margin-bottom: 8px;
+    }
+    .quiz-card .q-text { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
+    .quiz-options { display: flex; flex-direction: column; gap: 8px; }
+    .quiz-opt {
+      background: var(--card2);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px; color: var(--text);
+      cursor: pointer; text-align: left;
+      touch-action: manipulation;
+      transition: all .15s;
+    }
+    .quiz-opt:active { transform: scale(0.98); }
+    .quiz-opt.correct { border-color: var(--primary); background: var(--primary-dim); color: var(--primary); }
+    .quiz-opt.wrong { border-color: var(--accent); background: rgba(255,107,157,0.1); color: var(--accent); }
+    .quiz-opt.disabled { pointer-events: none; opacity: 0.5; }
+    .quiz-feedback {
+      margin-top: 12px; font-size: 13px; font-weight: 600;
+      padding: 10px 14px; border-radius: 8px; display: none;
+    }
+    .quiz-feedback.show { display: block; }
+    .quiz-feedback.ok { background: var(--primary-dim); color: var(--primary); }
+    .quiz-feedback.err { background: rgba(255,107,157,0.1); color: var(--accent); }
+
+    /* Scroll snap for smooth experience */
+    #screen-home { scroll-snap-type: none; }
+  </style>
+</head>
+<body>
+
+<!-- ── BOTTOM NAV ──────────────────────────── -->
+<nav id="bottom-nav">
+  <div class="nav-item active" onclick="showScreen('home')">
+    <div class="nav-icon">🏠</div>
+    <div class="nav-label">Inicio</div>
+  </div>
+  <div class="nav-item" onclick="showScreen('learn')">
+    <div class="nav-icon">📚</div>
+    <div class="nav-label">Aprender</div>
+  </div>
+  <div class="nav-item" onclick="showScreen('sim')">
+    <div class="nav-icon">🧩</div>
+    <div class="nav-label">Simular</div>
+  </div>
+  <div class="nav-item" onclick="showScreen('quiz')">
+    <div class="nav-icon">🎯</div>
+    <div class="nav-label">Quiz</div>
+  </div>
+  <div class="nav-item" onclick="startAR()">
+    <div class="nav-icon">📱</div>
+    <div class="nav-label">AR</div>
+  </div>
+</nav>
+
+<!-- ── TOAST ──────────────────────────── -->
+<div id="toast"></div>
+
+<!-- ═══════════════════════════════════════
+     SCREEN: HOME
+════════════════════════════════════════ -->
+<div id="screen-home" class="screen has-nav">
+
+  <div class="hero-graphic">
+    <div class="array-visual" id="hero-array">
+      <div class="locker-preview lit">
+        <span class="idx">[0]</span>
+        <span class="val">🍎</span>
+      </div>
+      <div class="locker-preview lit">
+        <span class="idx">[1]</span>
+        <span class="val">🎮</span>
+      </div>
+      <div class="locker-preview">
+        <span class="idx">[2]</span>
+        <span class="val empty-val">null</span>
+      </div>
+      <div class="locker-preview">
+        <span class="idx">[3]</span>
+        <span class="val empty-val">null</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-title">
+    <h1>Aprende <span>Arrays</span><br>en Realidad Aumentada</h1>
+    <p>Visualiza arreglos como lockers en el mundo real usando la cámara de tu celular.</p>
+  </div>
+
+  <div class="features">
+    <div class="feature-item">
+      <div class="feature-icon">🔬</div>
+      <div class="feature-text">
+        <h3>Realidad Aumentada</h3>
+        <p>Apunta al marcador Hiro y mira los lockers aparecer en 3D</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">🧩</div>
+      <div class="feature-text">
+        <h3>Simulador Interactivo</h3>
+        <p>Guarda, lee y borra valores del arreglo con tus dedos</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">🎯</div>
+      <div class="feature-text">
+        <h3>Quiz de práctica</h3>
+        <p>Pon a prueba lo que aprendiste con ejercicios interactivos</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta-zone">
+    <button class="btn btn-ar" onclick="startAR()">
+      📱 Iniciar experiencia AR
+    </button>
+    <button class="btn btn-secondary" onclick="showScreen('sim')">
+      🧩 Usar simulador
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     SCREEN: LEARN
+════════════════════════════════════════ -->
+<div id="screen-learn" class="screen has-nav hidden">
+
+  <div class="page-header">
+    <div class="back-btn" onclick="showScreen('home')">←</div>
+    <h2>📚 Aprende Arrays</h2>
+  </div>
+
+  <div class="lesson-tabs">
+    <button class="tab-btn active" onclick="showLesson(0, this)">¿Qué es?</button>
+    <button class="tab-btn" onclick="showLesson(1, this)">Índices</button>
+    <button class="tab-btn" onclick="showLesson(2, this)">Operaciones</button>
+    <button class="tab-btn" onclick="showLesson(3, this)">Métodos</button>
+  </div>
+
+  <div id="lesson-0" class="lesson-content">
+    <div class="lesson-card">
+      <h3>🗄️ ¿Qué es un arreglo?</h3>
+      <p>Un arreglo (o array) es una estructura de datos que almacena múltiples valores en una sola variable, ordenados en posiciones numeradas.</p>
+      <p>Piensa en él como un conjunto de <strong>lockers numerados</strong>: cada locker guarda exactamente un valor y tiene un número único (su índice).</p>
+    </div>
+
+    <div class="lesson-card">
+      <h3>💡 Analogía: los lockers</h3>
+      <div class="array-demo">
+        <div class="cell highlight"><span class="c-idx">[0]</span><span class="c-val">🍎</span></div>
+        <div class="cell highlight"><span class="c-idx">[1]</span><span class="c-val">42</span></div>
+        <div class="cell highlight"><span class="c-idx">[2]</span><span class="c-val">"hola"</span></div>
+        <div class="cell"><span class="c-idx">[3]</span><span class="c-val" style="color:var(--text-muted);font-size:11px">vacío</span></div>
+      </div>
+      <p>Cada celda del arreglo es un "locker" que puede contener cualquier valor: número, texto, emoji, etc.</p>
+    </div>
+
+    <div class="lesson-card">
+      <h3>📝 Cómo crear un arreglo</h3>
+      <div class="code-block"><span class="cm">// Arreglo vacío</span>
+<span class="kw">let</span> lockers <span class="op">=</span> [];
+
+<span class="cm">// Con valores iniciales</span>
+<span class="kw">let</span> frutas <span class="op">=</span> [<span class="str">"manzana"</span>, <span class="str">"pera"</span>, <span class="str">"uva"</span>];
+
+<span class="cm">// También funciona con:</span>
+<span class="kw">let</span> nums <span class="op">=</span> <span class="kw">new</span> <span class="fn">Array</span>(<span class="num">5</span>); <span class="cm">// 5 espacios</span></div>
+    </div>
+  </div>
+
+  <div id="lesson-1" class="lesson-content hidden">
+    <div class="lesson-card">
+      <h3>🔢 Índices: la dirección de cada locker</h3>
+      <p>Los arreglos en programación <strong>empiezan desde 0</strong>, no desde 1. El primer elemento siempre está en el índice 0.</p>
+      <div class="array-demo" style="margin:14px 0;">
+        <div class="cell highlight"><span class="c-idx">[0]</span><span class="c-val">🐶</span></div>
+        <div class="cell"><span class="c-idx">[1]</span><span class="c-val">🐱</span></div>
+        <div class="cell"><span class="c-idx">[2]</span><span class="c-val">🐭</span></div>
+        <div class="cell"><span class="c-idx">[3]</span><span class="c-val">🐹</span></div>
+      </div>
+      <div class="code-block"><span class="kw">let</span> animales <span class="op">=</span> [<span class="str">"🐶"</span>, <span class="str">"🐱"</span>, <span class="str">"🐭"</span>, <span class="str">"🐹"</span>];
+
+<span class="cm">// Leer un elemento:</span>
+<span class="fn">console</span>.<span class="fn">log</span>(animales[<span class="num">0</span>]); <span class="cm">// "🐶"</span>
+<span class="fn">console</span>.<span class="fn">log</span>(animales[<span class="num">2</span>]); <span class="cm">// "🐭"</span>
+
+<span class="cm">// ¡Cuidado! Índice fuera de rango:</span>
+<span class="fn">console</span>.<span class="fn">log</span>(animales[<span class="num">5</span>]); <span class="cm">// undefined</span></div>
+    </div>
+
+    <div class="lesson-card">
+      <h3>📏 Longitud del arreglo</h3>
+      <p>La propiedad <code style="color:var(--primary);font-family:JetBrains Mono">.length</code> te dice cuántos elementos tiene:</p>
+      <div class="code-block"><span class="kw">let</span> colores <span class="op">=</span> [<span class="str">"rojo"</span>, <span class="str">"verde"</span>, <span class="str">"azul"</span>];
+
+<span class="fn">console</span>.<span class="fn">log</span>(colores.<span class="fn">length</span>); <span class="cm">// 3</span>
+
+<span class="cm">// Último elemento:</span>
+<span class="kw">let</span> ultimo <span class="op">=</span> colores[colores.<span class="fn">length</span> <span class="op">-</span> <span class="num">1</span>];
+<span class="cm">// "azul"</span></div>
+    </div>
+  </div>
+
+  <div id="lesson-2" class="lesson-content hidden">
+    <div class="lesson-card">
+      <h3>✏️ Modificar elementos</h3>
+      <div class="code-block"><span class="kw">let</span> lockers <span class="op">=</span> [<span class="str">"A"</span>, <span class="str">"B"</span>, <span class="str">"C"</span>];
+
+<span class="cm">// Guardar un valor en el índice 1:</span>
+lockers[<span class="num">1</span>] <span class="op">=</span> <span class="str">"Nuevo"</span>;
+<span class="cm">// lockers → ["A", "Nuevo", "C"]</span>
+
+<span class="cm">// Leer el valor del índice 0:</span>
+<span class="kw">let</span> v <span class="op">=</span> lockers[<span class="num">0</span>]; <span class="cm">// "A"</span></div>
+    </div>
+
+    <div class="lesson-card">
+      <h3>🔄 Recorrer con for</h3>
+      <div class="code-block"><span class="kw">let</span> frutas <span class="op">=</span> [<span class="str">"🍎"</span>, <span class="str">"🍊"</span>, <span class="str">"🍋"</span>];
+
+<span class="cm">// Con índice:</span>
+<span class="kw">for</span> (<span class="kw">let</span> i <span class="op">=</span> <span class="num">0</span>; i <span class="op">&lt;</span> frutas.<span class="fn">length</span>; i<span class="op">++</span>) {
+  <span class="fn">console</span>.<span class="fn">log</span>(i, frutas[i]);
+}
+
+<span class="cm">// Con for...of:</span>
+<span class="kw">for</span> (<span class="kw">let</span> fruta <span class="kw">of</span> frutas) {
+  <span class="fn">console</span>.<span class="fn">log</span>(fruta);
+}</div>
+    </div>
+  </div>
+
+  <div id="lesson-3" class="lesson-content hidden">
+    <div class="lesson-card">
+      <h3>🛠️ Métodos esenciales</h3>
+      <div class="code-block"><span class="kw">let</span> nums <span class="op">=</span> [<span class="num">10</span>, <span class="num">20</span>, <span class="num">30</span>];
+
+<span class="cm">// Agregar al final:</span>
+nums.<span class="fn">push</span>(<span class="num">40</span>);       <span class="cm">// [10,20,30,40]</span>
+
+<span class="cm">// Quitar del final:</span>
+nums.<span class="fn">pop</span>();         <span class="cm">// [10,20,30]</span>
+
+<span class="cm">// Agregar al inicio:</span>
+nums.<span class="fn">unshift</span>(<span class="num">5</span>);    <span class="cm">// [5,10,20,30]</span>
+
+<span class="cm">// Quitar del inicio:</span>
+nums.<span class="fn">shift</span>();       <span class="cm">// [10,20,30]</span>
+
+<span class="cm">// Buscar un elemento:</span>
+nums.<span class="fn">indexOf</span>(<span class="num">20</span>);  <span class="cm">// 1</span>
+
+<span class="cm">// Verificar si incluye:</span>
+nums.<span class="fn">includes</span>(<span class="num">30</span>); <span class="cm">// true</span></div>
+    </div>
+
+    <div class="lesson-card">
+      <h3>🔀 Métodos avanzados</h3>
+      <div class="code-block"><span class="kw">let</span> vals <span class="op">=</span> [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>];
+
+<span class="cm">// Filtrar pares:</span>
+<span class="kw">let</span> pares <span class="op">=</span> vals.<span class="fn">filter</span>(x <span class="op">=&gt;</span> x <span class="op">%</span> <span class="num">2</span> <span class="op">===</span> <span class="num">0</span>);
+<span class="cm">// [2, 4]</span>
+
+<span class="cm">// Transformar (×2):</span>
+<span class="kw">let</span> dobles <span class="op">=</span> vals.<span class="fn">map</span>(x <span class="op">=&gt;</span> x <span class="op">*</span> <span class="num">2</span>);
+<span class="cm">// [2, 4, 6, 8, 10]</span>
+
+<span class="cm">// Sumar todos:</span>
+<span class="kw">let</span> suma <span class="op">=</span> vals.<span class="fn">reduce</span>((acc, x) <span class="op">=&gt;</span> acc <span class="op">+</span> x, <span class="num">0</span>);
+<span class="cm">// 15</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════
+     SCREEN: SIMULATOR
+════════════════════════════════════════ -->
+<div id="screen-sim" class="screen has-nav hidden">
+
+  <div class="sim-header">
+    <div class="back-btn" onclick="showScreen('home')">←</div>
+    <h2>🧩 Simulador</h2>
+  </div>
+
+  <div class="array-state-bar">
+    <label>Estado actual del arreglo</label>
+    <div class="code-output" id="array-output">arreglo = []</div>
+  </div>
+
+  <div class="section-title">Los 6 Lockers (toca uno para seleccionar)</div>
+  <div class="lockers-grid" id="lockers-grid"></div>
+
+  <div class="input-zone" id="input-zone">
+    <label>Operación</label>
+    <div class="selected-indicator" id="selected-indicator">— Selecciona un locker —</div>
+    <div class="input-row">
+      <input type="text" id="value-input" placeholder="Escribe un valor..." maxlength="10" />
+      <button class="btn btn-primary" onclick="saveToLocker()" style="flex-shrink:0;padding:12px 18px">
+        💾 Guardar
+      </button>
+    </div>
+  </div>
+
+  <div class="section-title">Operaciones rápidas</div>
+  <div class="op-grid">
+    <button class="op-btn" onclick="pushValue()">
+      <span class="op-icon">➕</span>
+      <div><div style="font-size:12px">push()</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px">Agregar al final</div></div>
+    </button>
+    <button class="op-btn" onclick="popValue()">
+      <span class="op-icon">➖</span>
+      <div><div style="font-size:12px">pop()</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px">Quitar del final</div></div>
+    </button>
+    <button class="op-btn" onclick="readSelected()">
+      <span class="op-icon">👁️</span>
+      <div><div style="font-size:12px">read(i)</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px">Leer seleccionado</div></div>
+    </button>
+    <button class="op-btn danger" onclick="clearSelected()">
+      <span class="op-icon">🗑️</span>
+      <div><div style="font-size:12px">clear(i)</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px">Borrar seleccionado</div></div>
+    </button>
+  </div>
+
+  <div style="margin-top:16px">
+    <button class="btn btn-ghost" style="width:100%" onclick="resetArray()">🔄 Reiniciar arreglo</button>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════
+     SCREEN: QUIZ
+════════════════════════════════════════ -->
+<div id="screen-quiz" class="screen has-nav hidden">
+
+  <div class="page-header">
+    <div class="back-btn" onclick="showScreen('home')">←</div>
+    <h2>🎯 Quiz</h2>
+  </div>
+
+  <div id="quiz-container"></div>
+
+  <div style="margin-top:8px">
+    <button class="btn btn-secondary" style="width:100%" onclick="loadQuiz()">🔀 Nuevo quiz</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     SCREEN: AR
+════════════════════════════════════════ -->
+<div id="screen-ar" class="screen hidden">
+  <div class="centered-content" id="ar-perm-screen">
+    <div class="perm-icon">📷</div>
+    <h2 class="perm-title">Cámara requerida</h2>
+    <p class="perm-body">Para la experiencia de Realidad Aumentada necesitas imprimir o mostrar en pantalla el marcador <strong>Hiro</strong> y dar permiso de cámara.</p>
+    <img src="https://raw.githack.com/jeromeetienne/AR.js/master/data/images/HIRO.jpg"
+         style="width:120px;border:3px solid var(--primary);border-radius:12px;margin:8px 0" alt="Marcador Hiro" />
+    <button class="btn btn-ar" style="width:100%;max-width:280px" onclick="launchARScene()">
+      📱 Activar cámara AR
+    </button>
+    <button class="btn btn-ghost" style="width:100%;max-width:280px" onclick="showScreen('home')">
+      ← Volver
+    </button>
+  </div>
+
+  <div id="ar-scene-container" style="display:none;position:fixed;inset:0;">
+    <a-scene id="ar-scene"
+      embedded
+      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+      vr-mode-ui="enabled: false"
+      renderer="logarithmicDepthBuffer: true; antialias: true;">
+
+      <a-assets>
+        <a-mixin id="box-mixin"
+          geometry="primitive: box; width: 0.5; height: 0.7; depth: 0.5"
+          material="color: #131823; metalness: 0.3; roughness: 0.7"
+          animation__hover="property: position; to: 0 0.05 0; dur: 1000; easing: easeInOutSine; loop: true; dir: alternate">
+        </a-mixin>
+      </a-assets>
+
+      <a-marker preset="hiro" id="hiro-marker">
+        <!-- 6 lockers en AR -->
+        <a-entity id="ar-locker-0" position="-1.3 0 0">
+          <a-box width="0.5" height="0.7" depth="0.5" color="#131823" metalness="0.4" roughness="0.6" animation="property: position; to: -1.3 0.05 0; dur: 1200; easing: easeInOutSine; loop: true; dir: alternate"></a-box>
+          <a-text value="[0]" position="0 0.5 0.26" align="center" color="#4ecdc4" width="1.2" font="exo2bold"></a-text>
+          <a-text id="ar-val-0" value="null" position="0 0.1 0.26" align="center" color="#e8edf5" width="1.5" font="exo2bold"></a-text>
+        </a-entity>
+
+        <a-entity id="ar-locker-1" position="-0.65 0 0">
+          <a-box width="0.5" height="0.7" depth="0.5" color="#131823" metalness="0.4" roughness="0.6" animation="property: position; to: -0.65 0.06 0; dur: 1400; easing: easeInOutSine; loop: true; dir: alternate"></a-box>
+          <a-text value="[1]" position="0 0.5 0.26" align="center" color="#4ecdc4" width="1.2" font="exo2bold"></a-text>
+          <a-text id="ar-val-1" value="null" position="0 0.1 0.26" align="center" color="#e8edf5" width="1.5" font="exo2bold"></a-text>
+        </a-entity>
+
+        <a-entity id="ar-locker-2" position="0 0 0">
+          <a-box width="0.5" height="0.7" depth="0.5" color="#131823" metalness="0.4" roughness="0.6" animation="property: position; to: 0 0.04 0; dur: 1100; easing: easeInOutSine; loop: true; dir: alternate"></a-box>
+          <a-text value="[2]" position="0 0.5 0.26" align="center" color="#4ecdc4" width="1.2" font="exo2bold"></a-text>
+          <a-text id="ar-val-2" value="null" position="0 0.1 0.26" align="center" color="#e8edf5" width="1.5" font="exo2bold"></a-text>
+        </a-entity>
+
+        <a-entity id="ar-locker-3" position="0.65 0 0">
+          <a-box width="0.5" height="0.7" depth="0.5" color="#131823" metalness="0.4" roughness="0.6" animation="property: position; to: 0.65 0.07 0; dur: 1300; easing: easeInOutSine; loop: true; dir: alternate"></a-box>
+          <a-text value="[3]" position="0 0.5 0.26" align="center" color="#4ecdc4" width="1.2" font="exo2bold"></a-text>
+          <a-text id="ar-val-3" value="null" position="0 0.1 0.26" align="center" color="#e8edf5" width="1.5" font="exo2bold"></a-text>
+        </a-entity>
+
+        <a-entity id="ar-locker-4" position="1.3 0 0">
+          <a-box width="0.5" height="0.7" depth="0.5" color="#131823" metalness="0.4" roughness="0.6" animation="property: position; to: 1.3 0.05 0; dur: 1000; easing: easeInOutSine; loop: true; dir: alternate"></a-box>
+          <a-text value="[4]" position="0 0.5 0.26" align="center" color="#4ecdc4" width="1.2" font="exo2bold"></a-text>
+          <a-text id="ar-val-4" value="null" position="0 0.1 0.26" align="center" color="#e8edf5" width="1.5" font="exo2bold"></a-text>
+        </a-entity>
+
+        <a-entity id="ar-locker-5" position="1.95 0 0">
+          <a-box width="0.5" height="0.7" depth="0.5" color="#131823" metalness="0.4" roughness="0.6" animation="property: position; to: 1.95 0.06 0; dur: 1600; easing: easeInOutSine; loop: true; dir: alternate"></a-box>
+          <a-text value="[5]" position="0 0.5 0.26" align="center" color="#4ecdc4" width="1.2" font="exo2bold"></a-text>
+          <a-text id="ar-val-5" value="null" position="0 0.1 0.26" align="center" color="#e8edf5" width="1.5" font="exo2bold"></a-text>
+        </a-entity>
+
+        <!-- Title label -->
+        <a-text value="arreglo[ ]" position="-1.3 1.0 0" align="left" color="#4ecdc4" width="2.5" font="exo2bold"></a-text>
+      </a-marker>
+
+      <a-entity camera></a-entity>
+    </a-scene>
+
+    <!-- AR UI overlay -->
+    <div class="ar-ui-overlay">
+      <div class="ar-top-bar">
+        <div class="ar-badge">🔬 AR Activo</div>
+        <button class="ar-exit-btn" onclick="exitAR()">✕ Salir</button>
+      </div>
+
+      <div class="ar-hint">
+        <h4>📱 Apunta al marcador Hiro</h4>
+        <img src="https://raw.githack.com/jeromeetienne/AR.js/master/data/images/HIRO.jpg"
+             class="hiro-img" alt="Hiro" />
+        <p>Los lockers aparecerán sobre el marcador en 3D</p>
+        <div class="ar-array-display" id="ar-array-display"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════ */
+const SIZE = 6;
+let array = new Array(SIZE).fill(null);
+let selectedIndex = null;
+let arActive = false;
+
+/* ══════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════ */
+const screens = ['home','learn','sim','quiz','ar'];
+const navItems = document.querySelectorAll('.nav-item');
+
+function showScreen(id) {
+  screens.forEach(s => {
+    const el = document.getElementById('screen-' + s);
+    if (s === id) el.classList.remove('hidden');
+    else el.classList.add('hidden');
+  });
+
+  // Update nav
+  const navMap = { home: 0, learn: 1, sim: 2, quiz: 3, ar: 4 };
+  navItems.forEach((item, i) => item.classList.toggle('active', i === navMap[id]));
+
+  // Show/hide nav
+  const nav = document.getElementById('bottom-nav');
+  nav.classList.toggle('hidden', id === 'ar');
+
+  if (id === 'sim') renderLockers();
+  if (id === 'quiz') loadQuiz();
+}
+
+/* ══════════════════════════════════════════════
+   SIMULATOR
+══════════════════════════════════════════════ */
+function renderLockers() {
+  const grid = document.getElementById('lockers-grid');
+  grid.innerHTML = '';
+  array.forEach((val, i) => {
+    const card = document.createElement('div');
+    card.className = `locker-card${val !== null ? ' filled' : ''}${selectedIndex === i ? ' selected' : ''}`;
+    card.innerHTML = `
+      <div class="locker-icon">${val !== null ? '🔒' : '🔓'}</div>
+      <div class="locker-index">índice [${i}]</div>
+      <div class="locker-value ${val === null ? 'empty-val' : ''}">${val !== null ? val : 'null'}</div>
+    `;
+    card.addEventListener('click', () => selectLocker(i));
+    grid.appendChild(card);
+  });
+  updateArrayOutput();
+  updateARDisplay();
+}
+
+function selectLocker(i) {
+  selectedIndex = i;
+  const indicator = document.getElementById('selected-indicator');
+  const val = array[i];
+  indicator.textContent = `arreglo[${i}] = ${val !== null ? `"${val}"` : 'null'}`;
+  indicator.style.color = val !== null ? 'var(--primary)' : 'var(--text-muted)';
+  renderLockers();
+
+  // Pre-fill input if has value
+  const input = document.getElementById('value-input');
+  if (val !== null) input.value = val;
+}
+
+function saveToLocker() {
+  if (selectedIndex === null) {
+    showToast('Selecciona un locker primero', 'warn');
+    return;
+  }
+  const val = document.getElementById('value-input').value.trim();
+  if (!val) {
+    showToast('Escribe un valor primero', 'warn');
+    return;
+  }
+  array[selectedIndex] = val;
+  document.getElementById('value-input').value = '';
+  document.getElementById('value-input').blur();
+  updateARLockers();
+  renderLockers();
+  showToast(`✅ Guardado en arreglo[${selectedIndex}]`, 'success');
+}
+
+function pushValue() {
+  const input = document.getElementById('value-input');
+  const val = input.value.trim() || `v${Date.now() % 100}`;
+  // Find first null slot
+  const emptyIdx = array.findIndex(v => v === null);
+  if (emptyIdx === -1) {
+    showToast('¡Arreglo lleno! Borra algo primero', 'warn');
+    return;
+  }
+  array[emptyIdx] = val;
+  input.value = '';
+  updateARLockers();
+  renderLockers();
+  showToast(`➕ push() → arreglo[${emptyIdx}] = "${val}"`, 'success');
+}
+
+function popValue() {
+  // Find last non-null
+  let lastIdx = -1;
+  for (let i = SIZE - 1; i >= 0; i--) {
+    if (array[i] !== null) { lastIdx = i; break; }
+  }
+  if (lastIdx === -1) {
+    showToast('El arreglo ya está vacío', 'warn');
+    return;
+  }
+  const removed = array[lastIdx];
+  array[lastIdx] = null;
+  if (selectedIndex === lastIdx) selectedIndex = null;
+  updateARLockers();
+  renderLockers();
+  showToast(`➖ pop() → eliminó "${removed}"`, 'success');
+}
+
+function readSelected() {
+  if (selectedIndex === null) {
+    showToast('Selecciona un locker primero', 'warn');
+    return;
+  }
+  const val = array[selectedIndex];
+  showToast(val !== null ? `👁️ arreglo[${selectedIndex}] = "${val}"` : `👁️ arreglo[${selectedIndex}] = null`, 'success');
+}
+
+function clearSelected() {
+  if (selectedIndex === null) {
+    showToast('Selecciona un locker primero', 'warn');
+    return;
+  }
+  const old = array[selectedIndex];
+  array[selectedIndex] = null;
+  if (old !== null) showToast(`🗑️ Borrado arreglo[${selectedIndex}]`, 'success');
+  else showToast('El locker ya estaba vacío', 'warn');
+  updateARLockers();
+  renderLockers();
+}
+
+function resetArray() {
+  array = new Array(SIZE).fill(null);
+  selectedIndex = null;
+  document.getElementById('selected-indicator').textContent = '— Selecciona un locker —';
+  document.getElementById('selected-indicator').style.color = 'var(--text-muted)';
+  updateARLockers();
+  renderLockers();
+  showToast('🔄 Arreglo reiniciado', 'success');
+}
+
+function updateArrayOutput() {
+  const vals = array.map(v => v === null ? 'null' : `"${v}"`);
+  document.getElementById('array-output').textContent = `arreglo = [${vals.join(', ')}]`;
+}
+
+function updateARDisplay() {
+  const display = document.getElementById('ar-array-display');
+  if (!display) return;
+  display.innerHTML = array.map((v, i) =>
+    `<div class="ar-cell ${v === null ? 'empty-ar' : ''}">[${i}]${v !== null ? ':' + v : ''}</div>`
+  ).join('');
+}
+
+/* ══════════════════════════════════════════════
+   AR MODE
+══════════════════════════════════════════════ */
+function startAR() {
+  showScreen('ar');
+  document.getElementById('ar-perm-screen').style.display = 'flex';
+  document.getElementById('ar-scene-container').style.display = 'none';
+}
+
+function launchARScene() {
+  document.getElementById('ar-perm-screen').style.display = 'none';
+  document.getElementById('ar-scene-container').style.display = 'block';
+  arActive = true;
+  updateARLockers();
+}
+
+function exitAR() {
+  arActive = false;
+  document.getElementById('ar-scene-container').style.display = 'none';
+  showScreen('sim');
+}
+
+function updateARLockers() {
+  for (let i = 0; i < SIZE; i++) {
+    const el = document.getElementById('ar-val-' + i);
+    if (el) {
+      el.setAttribute('value', array[i] !== null ? array[i] : 'null');
+      el.setAttribute('color', array[i] !== null ? '#4ecdc4' : '#4a5568');
+    }
+  }
+  updateARDisplay();
+}
+
+/* ══════════════════════════════════════════════
+   LESSONS
+══════════════════════════════════════════════ */
+function showLesson(idx, btn) {
+  document.querySelectorAll('.lesson-content').forEach((el, i) => {
+    el.classList.toggle('hidden', i !== idx);
+  });
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+/* ══════════════════════════════════════════════
+   QUIZ
+══════════════════════════════════════════════ */
+const QUESTIONS = [
+  {
+    q: '¿Cuál es el índice del PRIMER elemento de un arreglo?',
+    opts: ['1', '0', '-1', 'length'],
+    ans: 1,
+    exp: 'Los arreglos empiezan desde índice 0, no desde 1.'
+  },
+  {
+    q: 'Dado: arr = ["a", "b", "c"] ¿Qué devuelve arr[2]?',
+    opts: ['"a"', '"b"', '"c"', 'undefined'],
+    ans: 2,
+    exp: 'El índice 2 corresponde al tercer elemento: "c".'
+  },
+  {
+    q: '¿Qué método agrega un elemento AL FINAL del arreglo?',
+    opts: ['unshift()', 'shift()', 'push()', 'pop()'],
+    ans: 2,
+    exp: 'push() agrega al final. unshift() agrega al inicio.'
+  },
+  {
+    q: 'Dado arr = [10, 20, 30], ¿cuánto vale arr.length?',
+    opts: ['2', '3', '4', '0'],
+    ans: 1,
+    exp: 'length devuelve el número de elementos: 3.'
+  },
+  {
+    q: '¿Qué devuelve arr[arr.length - 1]?',
+    opts: ['El primero', 'El del medio', 'El último', 'undefined'],
+    ans: 2,
+    exp: 'Es una técnica común: length-1 da el índice del último.'
+  },
+  {
+    q: 'Dado arr = [5, 10, 15], ¿qué hace arr.pop()?',
+    opts: ['Devuelve 5 y lo borra', 'Devuelve 15 y lo borra', 'Devuelve 10', 'Agrega 15'],
+    ans: 1,
+    exp: 'pop() quita y devuelve el último elemento (15).'
+  },
+  {
+    q: '¿Cuál instrucción GUARDA "hola" en el índice 0?',
+    opts: ['arr[1] = "hola"', 'arr[0] = "hola"', 'arr.push("hola")', 'arr[0]["hola"]'],
+    ans: 1,
+    exp: 'Para guardar en un índice específico: arr[0] = "hola".'
+  },
+  {
+    q: '¿Qué método verifica si el arreglo contiene un valor?',
+    opts: ['arr.has()', 'arr.find()', 'arr.includes()', 'arr.search()'],
+    ans: 2,
+    exp: 'includes() devuelve true/false según si el valor existe.'
+  },
+];
+
+function shuffle(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+function loadQuiz() {
+  const questions = shuffle(QUESTIONS).slice(0, 4);
+  const container = document.getElementById('quiz-container');
+  container.innerHTML = questions.map((q, qi) => `
+    <div class="quiz-card">
+      <div class="q-num">Pregunta ${qi + 1}</div>
+      <div class="q-text">${q.q}</div>
+      <div class="quiz-options">
+        ${q.opts.map((opt, oi) => `
+          <button class="quiz-opt" onclick="answerQuiz(this, ${oi}, ${q.ans}, '${q.exp.replace(/'/g,"\\'")}', ${qi})">
+            ${opt}
+          </button>
+        `).join('')}
+      </div>
+      <div class="quiz-feedback" id="qfb-${qi}"></div>
+    </div>
+  `).join('');
+}
+
+function answerQuiz(btn, chosen, correct, exp, qi) {
+  const card = btn.closest('.quiz-card');
+  const opts = card.querySelectorAll('.quiz-opt');
+  opts.forEach(o => o.classList.add('disabled'));
+
+  if (chosen === correct) {
+    btn.classList.add('correct');
+    const fb = document.getElementById('qfb-' + qi);
+    fb.className = 'quiz-feedback show ok';
+    fb.textContent = '✅ ' + exp;
+    showToast('¡Correcto! 🎉', 'success');
+  } else {
+    btn.classList.add('wrong');
+    opts[correct].classList.add('correct');
+    const fb = document.getElementById('qfb-' + qi);
+    fb.className = 'quiz-feedback show err';
+    fb.textContent = '❌ ' + exp;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════ */
+let toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className = type; }, 2800);
+}
+
+/* ══════════════════════════════════════════════
+   HERO ANIMATION
+══════════════════════════════════════════════ */
+const heroVals = ['🍎','42','hi','🎮','99','🌟','JS','yo'];
+let hvIdx = 0;
+setInterval(() => {
+  const lockers = document.querySelectorAll('#hero-array .locker-preview.lit');
+  if (lockers.length) {
+    lockers[Math.floor(Math.random() * lockers.length)].querySelector('.val').textContent = heroVals[hvIdx % heroVals.length];
+    hvIdx++;
+  }
+}, 1600);
+
+/* ══════════════════════════════════════════════
+   ENTER key in input
+══════════════════════════════════════════════ */
+document.getElementById('value-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { saveToLocker(); }
+});
+
+/* ══════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════ */
+renderLockers();
+</script>
+</body>
+</html>
